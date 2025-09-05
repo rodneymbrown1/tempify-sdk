@@ -1,0 +1,68 @@
+# ------------------------
+# Python
+# ------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+*.log
+
+# Jupyter / IPython
+.ipynb_checkpoints/
+profile_default/
+ipython_config.py
+
+# IDEs / editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Local configs / secrets
+*.env
+*.local
+
+# Hatch / build tools
+*.egg-info/
+*.egg
+*.whl
+*.lock
