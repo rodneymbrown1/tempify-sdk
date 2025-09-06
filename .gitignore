@@ -42,6 +42,9 @@ htmlcov/
 .pytest_cache/
 *.log
 
+# Ignore tests for now
+tests/
+
 # Jupyter / IPython
 .ipynb_checkpoints/
 profile_default/

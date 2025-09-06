@@ -1,0 +1,45 @@
+# src/templify/core/config/exporter.py
+
+import os
+import json
+
+
+class ConfigExporter:
+    """
+    Exports Templify configs (titles_config and main_config) to disk as JSON files.
+
+    Usage:
+        exporter = ConfigExporter(titles_config, main_config)
+        exporter.save_to_files("output/")
+    """
+
+    def __init__(self, titles_config, main_config):
+        if not isinstance(titles_config, dict):
+            raise ValueError("titles_config must be a dict")
+        if not isinstance(main_config, dict):
+            raise ValueError("main_config must be a dict")
+
+        self.titles_config = titles_config
+        self.main_config = main_config
+
+    def save_to_files(self, output_dir, titles_filename="titles_config.json", main_filename="main_config.json"):
+        """
+        Write both configs to disk as JSON files in the specified directory.
+
+        :param output_dir: Directory to write the files into.
+        :param titles_filename: Optional override for titles config filename.
+        :param main_filename: Optional override for main config filename.
+        :return: (titles_path, main_path)
+        """
+        os.makedirs(output_dir, exist_ok=True)
+
+        titles_path = os.path.join(output_dir, titles_filename)
+        main_path = os.path.join(output_dir, main_filename)
+
+        with open(titles_path, "w", encoding="utf-8") as f:
+            json.dump(self.titles_config, f, indent=2)
+
+        with open(main_path, "w", encoding="utf-8") as f:
+            json.dump(self.main_config, f, indent=2)
+
+        return titles_path, main_path

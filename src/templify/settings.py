@@ -3,7 +3,7 @@ from importlib.resources import files
 from typing import Any
 
 def load_default() -> dict[str, Any]:
-    p = files("tempify.data").joinpath("default_config.json")
+    p = files("templify.data").joinpath("default_config.json")
     return json.loads(p.read_text(encoding="utf-8"))
 
 def load(path: str) -> dict[str, Any]:

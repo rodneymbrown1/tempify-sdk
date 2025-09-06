@@ -1,1 +1,1 @@
-# tempify-sdk
+# templify-sdk
