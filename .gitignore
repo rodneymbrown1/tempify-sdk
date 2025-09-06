@@ -63,6 +63,7 @@ Thumbs.db
 # Local configs / secrets
 *.env
 *.local
+scripts
 
 # Hatch / build tools
 *.egg-info/
