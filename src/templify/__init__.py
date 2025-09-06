@@ -1,5 +1,10 @@
+from .runner import generate_configs_from_docx
+from .runner import generate_configs  # core (expects document.xml)
+from .core.utils.docx_intake import unzip_docx_to_workspace, IntakeResult
 
-from . import settings, runner
-from ._version import __version__
-
-__all__ = ["settings", "runner", "__version__"]
+__all__ = [
+    "generate_configs_from_docx",
+    "generate_configs",
+    "unzip_docx_to_workspace",
+    "IntakeResult",
+]

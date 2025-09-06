@@ -6,23 +6,23 @@ import json
 
 class ConfigExporter:
     """
-    Exports Templify configs (titles_config and main_config) to disk as JSON files.
+    Exports Templify configs (titles_config and docx_config) to disk as JSON files.
 
     Usage:
-        exporter = ConfigExporter(titles_config, main_config)
+        exporter = ConfigExporter(titles_config, docx_config)
         exporter.save_to_files("output/")
     """
 
-    def __init__(self, titles_config, main_config):
+    def __init__(self, titles_config, docx_config):
         if not isinstance(titles_config, dict):
             raise ValueError("titles_config must be a dict")
-        if not isinstance(main_config, dict):
-            raise ValueError("main_config must be a dict")
+        if not isinstance(docx_config, dict):
+            raise ValueError("docx_config must be a dict")
 
         self.titles_config = titles_config
-        self.main_config = main_config
+        self.docx_config = docx_config
 
-    def save_to_files(self, output_dir, titles_filename="titles_config.json", main_filename="main_config.json"):
+    def save_to_files(self, output_dir, titles_filename="titles_config.json", main_filename="docx_config.json"):
         """
         Write both configs to disk as JSON files in the specified directory.
 
@@ -40,6 +40,6 @@ class ConfigExporter:
             json.dump(self.titles_config, f, indent=2)
 
         with open(main_path, "w", encoding="utf-8") as f:
-            json.dump(self.main_config, f, indent=2)
+            json.dump(self.docx_config, f, indent=2)
 
         return titles_path, main_path

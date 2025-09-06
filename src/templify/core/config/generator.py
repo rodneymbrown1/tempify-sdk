@@ -8,7 +8,7 @@ class ConfigGenerator:
 
     Produces:
       - titles_config: rules for detecting section titles
-      - main_config: layout groups, styles, and elements
+      - docx_config: layout groups, styles, and elements
     """
 
     def __init__(
@@ -53,7 +53,7 @@ class ConfigGenerator:
     # ------------------------------
     # Main config
     # ------------------------------
-    def build_main_config(self):
+    def build_docx_config(self):
         group_map = {g["group"]: g for g in self.layout_groups}
 
         for t in self.extracted_titles:

@@ -124,3 +124,20 @@ class Workspace:
     def directory(self, key: str) -> str:
         """Get the directory path for a given storage key."""
         return self.paths[key]
+
+    def delete_all(self):
+        """Delete all files inside the current workspace run directory."""
+        for key, path in self.paths.items():
+            if os.path.exists(path):
+                shutil.rmtree(path)
+                os.makedirs(path, exist_ok=True)
+
+    def delete_workspace(self):
+        """Delete the entire workspace run folder for this run_id."""
+        if os.path.exists(self.root_dir):
+            shutil.rmtree(self.root_dir)
+
+    def delete_root(self):
+        """Delete the entire workspace root (all runs). Use with caution."""
+        if os.path.exists(self.base_root):
+            shutil.rmtree(self.base_root)

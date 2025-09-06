@@ -16,7 +16,7 @@ class DocxToJsonParser:
 
     Produces two configs:
       - titles_config: rules for detecting section titles
-      - main_config: layout groups, elements, and styles
+      - docx_config: layout groups, elements, and styles
 
     This is the main entrypoint for transforming DOCX into JSON that can later
     be consumed by downstream pattern recognition or reconstruction tools.
@@ -53,7 +53,7 @@ class DocxToJsonParser:
 
         # Output configs
         self.titles_config = None
-        self.main_config = None
+        self.docx_config = None
 
     # -------------------------
     # Title extraction
@@ -214,13 +214,13 @@ class DocxToJsonParser:
             self.footers,
         )
         self.titles_config = generator.build_titles_config()
-        self.main_config = generator.build_main_config()
+        self.docx_config = generator.build_docx_config()
 
     # -------------------------
     # Optional: export to disk
     # -------------------------
     def export(self, output_dir):
-        if self.titles_config is None or self.main_config is None:
+        if self.titles_config is None or self.docx_config is None:
             raise RuntimeError("Parser must be run() before export().")
-        exporter = ConfigExporter(self.titles_config, self.main_config)
+        exporter = ConfigExporter(self.titles_config, self.docx_config)
         return exporter.save_to_files(output_dir)
