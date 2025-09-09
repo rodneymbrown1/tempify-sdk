@@ -2,7 +2,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable, List, Dict, Any, Sequence, Union
-from templify.core.analysis.plaintext_context import PlaintextContext
+from templify.core.analysis.utils.plaintext_context import PlaintextContext
 from templify.core.analysis.detectors.utils import coerce_to_lines
 
 @dataclass(frozen=True)

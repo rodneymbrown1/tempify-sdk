@@ -4,8 +4,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Mapping, Optional, Dict
 
-from .features import LineFeatures, extract_line_features
-from .domain_scoring import DomainScores, score_line_domain
+from ..features import LineFeatures, extract_line_features
+from ..domain_scoring import DomainScores, score_line_domain
 
 __all__ = ["PlaintextContext", "build_line_context"]
 

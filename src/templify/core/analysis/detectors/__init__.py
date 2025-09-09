@@ -38,7 +38,7 @@ from .semantic_classifier import (
     SemanticPrediction,
 )
 
-from .utils import coerce_to_lines
+from . import utils
 
 __all__ = [
     # Exact matcher
@@ -62,5 +62,5 @@ __all__ = [
     "SemanticPrediction",
 
     # Shared util
-    "coerce_to_lines",
+    "utils",
 ]

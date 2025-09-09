@@ -6,7 +6,7 @@ from dataclasses import dataclass, is_dataclass, asdict
 from typing import Callable, Iterable, List, Dict, Any, Sequence, Union, Optional
 
 from templify.core.analysis.features import extract_line_features
-from templify.core.analysis.plaintext_context import PlaintextContext
+from templify.core.analysis.utils.plaintext_context import PlaintextContext
 from templify.core.analysis.detectors.utils import coerce_to_lines, normalize_line
 
 # ---------- Public model ----------

@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from typing import Iterable, List, Pattern, Tuple, Sequence, Union, Any
-from templify.core.analysis.plaintext_context import PlaintextContext
+from templify.core.analysis.utils.plaintext_context import PlaintextContext
 from templify.core.analysis.detectors.utils import coerce_to_lines
 
 @dataclass(frozen=True)
