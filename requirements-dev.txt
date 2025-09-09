@@ -1,0 +1,19 @@
+# requirements-dev.txt
+# Development-only dependencies
+
+# core test runner
+pytest>=8.0,<9.0
+
+# coverage reporting
+pytest-cov>=5.0,<6.0
+
+# optional: type checking / linting
+mypy>=1.8,<2.0
+flake8>=7.0,<8.0
+
+# optional: useful pytest plugins
+pytest-xdist>=3.5,<4.0       # run tests in parallel with -n auto
+pytest-mock>=3.14,<4.0       # cleaner mocking with pytest
+
+# optional: for nicer failure diffs
+pytest-icdiff>=0.9,<1.0
