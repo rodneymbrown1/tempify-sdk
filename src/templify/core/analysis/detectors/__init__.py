@@ -7,7 +7,7 @@ Import from here in tests and calling code, e.g.:
     from templify.core.analysis.detectors import (
         ExactMatcher, find_exact_matches,
         build_regexes_from_phrases, regex_search_lines,
-        HeuristicClassifier, classify_lines,
+        HeadingDetection, classify_lines,
         SemanticClassifier, semantic_classify,
         RegexDetection, HeuristicPrediction, SemanticPrediction,
         coerce_to_lines,
@@ -26,10 +26,11 @@ from .regex_maker import (
     RegexDetection,
 )
 
-from .heuristic_classifier import (
-    HeuristicClassifier,
-    classify_lines,
-    HeuristicPrediction,
+from .heading_detector import (
+    HeadingDetection,
+    score_heading,
+    detect_headings,
+    BASE_CLUES,
 )
 
 from .semantic_classifier import (
@@ -52,7 +53,7 @@ __all__ = [
     "RegexDetection",
 
     # Heuristic classifier
-    "HeuristicClassifier",
+    "HeadingDetection",
     "classify_lines",
     "HeuristicPrediction",
 
