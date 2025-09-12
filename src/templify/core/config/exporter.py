@@ -1,5 +1,3 @@
-# src/templify/core/config/exporter.py
-
 import os
 import json
 
@@ -24,22 +22,22 @@ class ConfigExporter:
 
     def save_to_files(self, output_dir, titles_filename="titles_config.json", docx_filename="docx_config.json"):
         """
-        Write both configs to disk as JSON files in the specified directory.
+        Write both JSON configs to directory.
 
         :param output_dir: Directory to write the files into.
         :param titles_filename: Optional override for titles config filename.
         :param docx_filename: Optional override for docx config filename.
-        :return: (titles_path, docx_path)
+        :return: (titles_path, docx_path)ß
         """
         os.makedirs(output_dir, exist_ok=True)
 
-        titles_path = os.path.join(output_dir, titles_filename)
+        t_path = os.path.join(output_dir, titles_filename)
         docx_path = os.path.join(output_dir, docx_filename)
 
-        with open(titles_path, "w", encoding="utf-8") as f:
+        with open(t_path, "w", encoding="utf-8") as f:
             json.dump(self.titles_config, f, indent=2)
 
         with open(docx_path, "w", encoding="utf-8") as f:
             json.dump(self.docx_config, f, indent=2)
 
-        return titles_path, docx_path
+        return t_path, docx_path

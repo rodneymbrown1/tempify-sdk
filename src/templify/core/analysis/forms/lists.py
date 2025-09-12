@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Dict, Any
-from templify.core.analysis.detectors.list_detector import (
+from templify.core.analysis.detectors.heuristics.list_detector import (
     BULLET_RE, ORDERED_RE, ORDERED_NESTED_RE,
     DEFINITION_RE, INDENTED_RE,
 )

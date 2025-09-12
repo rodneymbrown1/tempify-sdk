@@ -4,10 +4,10 @@ import re
 
 class ConfigGenerator:
     """
-    Generates JSON configs from parsed DOCX content.
+    Assemble JSON configs from parsed DOCX content.
 
     Produces:
-      - titles_config: rules for detecting section titles
+      - titles_config: rules for identifying section titles
       - docx_config: layout groups, styles, and elements
     """
 
@@ -21,22 +21,23 @@ class ConfigGenerator:
         headers=None,
         footers=None,
     ):
+        # Core extracted values
         self.extracted_titles = extracted_titles
-        self.layout_groups = layout_groups or []
-        self.lists = lists or []
-        self.images = images or []
-        self.hyperlinks = hyperlinks or []
-        self.headers = headers or []
-        self.footers = footers or []
 
-    # ------------------------------
-    # Titles config
-    # ------------------------------
+        # Optional features, defaulting to empty lists
+        self.layout_groups = layout_groups if layout_groups is not None else []
+        self.lists = lists if lists is not None else []
+        self.images = images if images is not None else []
+        self.hyperlinks = hyperlinks if hyperlinks is not None else []
+        self.headers = headers if headers is not None else []
+        self.footers = footers if footers is not None else []
+
+    # ======================================================
+    # Titles configuration
+    # ======================================================
     def build_titles_config(self):
-        config = {"titles": []}
-
-        for t in self.extracted_titles:
-            config["titles"].append(
+        return {
+            "titles": [
                 {
                     "title": t["title"],
                     "layout_group": t["layout_group"],
@@ -46,162 +47,174 @@ class ConfigGenerator:
                         "case_sensitive": False,
                     },
                 }
-            )
+                for t in self.extracted_titles
+            ]
+        }
 
-        return config
-
-    # ------------------------------
-    # Main config
-    # ------------------------------
+    # ======================================================
+    # DOCX configuration
+    # ======================================================
     def build_docx_config(self):
-        group_map = {g["group"]: g for g in self.layout_groups}
+        # Start from existing groups
+        group_map = {grp["group"]: dict(grp) for grp in self.layout_groups}
 
-        for t in self.extracted_titles:
-            group_name = t["layout_group"]
-            style = t.get("style", {})
+        # ---------- Titles ----------
+        for title in self.extracted_titles:
+            group_id = title["layout_group"]
+            style = title.get("style", {})
 
-            # Prepare font and paragraph style info
-            font = {}
-            paragraph = {}
+            font, paragraph = self._extract_style(style)
             docx_style = style.get("pStyle")
 
-            if "font_size" in style:
-                font["size"] = style["font_size"]
-            if "bold" in style:
-                font["bold"] = style["bold"]
-            if "italic" in style:
-                font["italic"] = style["italic"]
-            if "underline" in style:
-                font["underline"] = style["underline"]
-            if "color" in style:
-                font["color"] = style["color"]
-            if "name" in style:
-                font["name"] = style["name"]
-
-            if "alignment" in style:
-                paragraph["alignment"] = style["alignment"]
-            if (
-                "spacing_before" in style
-                or "spacing_after" in style
-                or "indentation" in style
-            ):
-                paragraph["spacing_before"] = style.get("spacing_before", 0)
-                paragraph["spacing_after"] = style.get("spacing_after", 0)
-                paragraph["indentation"] = style.get(
-                    "indentation", {"left": 0, "right": 0, "first_line": 0}
-                )
-
-            if "list_type" in style:
-                paragraph["list_type"] = style["list_type"]
-
-            # If the group is not yet defined, create it
-            if group_name not in group_map:
-                group_map[group_name] = {
-                    "group": group_name,
+            if group_id not in group_map:
+                group_map[group_id] = {
+                    "group": group_id,
                     "layout": {},
                     "section_types": [],
                     "elements": [],
                 }
 
-            entry = {
-                "section_type": t["section_type"],
-                "title_detection": {
-                    "pattern": re.escape(t["title"]),
-                    "case_sensitive": False,
-                },
-                "style": docx_style,
-                "font": font,
-                "paragraph": paragraph,
-            }
-
-            group_map[group_name].setdefault("section_types", []).append(entry)
-
-        # Normalize new elements into each group
-        for g in group_map.values():
-            g.setdefault("elements", [])
-
-        # Add lists
-        for l in self.lists:
-            group_name = l.get("layout_group", "group0")
-            group_map[group_name]["elements"].append(
+            group_map[group_id].setdefault("section_types", []).append(
                 {
-                    "type": "list",
-                    "text": l["text"],
-                    "list_info": l.get("list_info"),
-                    "list_type": l.get("list_type", "bullet"),
+                    "section_type": title["section_type"],
+                    "title_detection": {
+                        "pattern": re.escape(title["title"]),
+                        "case_sensitive": False,
+                    },
+                    "style": docx_style,
+                    "font": font,
+                    "paragraph": paragraph,
                 }
             )
 
-        # Add images
-        for img in self.images:
-            group_name = img.get("layout_group", "group0")
-            group_map[group_name]["elements"].append(
-                {"type": "image", "xml": img["xml"]}
+        # Ensure `elements` is always present
+        for g in group_map.values():
+            g.setdefault("elements", [])
+
+        # ---------- Lists ----------
+        for lst in self.lists:
+            self._append_element(
+                group_map,
+                lst.get("layout_group", "group0"),
+                {
+                    "type": "list",
+                    "text": lst["text"],
+                    "list_info": lst.get("list_info"),
+                    "list_type": lst.get("list_type", "bullet"),
+                },
             )
 
-        # Add hyperlinks
+        # ---------- Images ----------
+        for img in self.images:
+            self._append_element(
+                group_map,
+                img.get("layout_group", "group0"),
+                {"type": "image", "xml": img["xml"]},
+            )
+
+        # ---------- Hyperlinks ----------
         for link in self.hyperlinks:
-            group_name = link.get("layout_group", "group0")
-            group_map[group_name]["elements"].append(
+            self._append_element(
+                group_map,
+                link.get("layout_group", "group0"),
                 {
                     "type": "hyperlink",
                     "display_text": link["display_text"],
                     "rId": link.get("rId"),
-                }
+                },
             )
 
-        # Add headers/footers
+        # ---------- Headers / Footers ----------
         for g in group_map.values():
             g.setdefault("header", None)
             g.setdefault("footer", None)
 
-        if self.headers:
-            for idx, h in enumerate(self.headers):
-                target_group = f"group{idx}" if f"group{idx}" in group_map else "group0"
-                group_map[target_group]["header"] = {
-                    "file": h["file"],
-                    "text": h["text"],
-                }
+        self._assign_headers(group_map)
+        self._assign_footers(group_map)
 
-        if self.footers:
-            for idx, f in enumerate(self.footers):
-                target_group = f"group{idx}" if f"group{idx}" in group_map else "group0"
-                group_map[target_group]["footer"] = {
-                    "file": f["file"],
-                    "text": f["text"],
-                }
-
+        # ---------- Defaults ----------
         return {
-            "global_defaults": {
-                "page_margins": {
-                    "top": 1440,
-                    "bottom": 1440,
-                    "left": 1440,
-                    "right": 1440,
-                    "header": 720,
-                    "footer": 720,
-                    "gutter": 0,
-                },
-                "page_size": {
-                    "width": 12240,
-                    "height": 15840,
-                    "orientation": "portrait",
-                },
-                "font": {
-                    "name": "Arial",
-                    "size": 16,
-                    "bold": False,
-                    "italic": False,
-                    "underline": False,
-                    "color": "000000",
-                },
-                "paragraph": {
-                    "alignment": "left",
-                    "spacing_before": 0,
-                    "spacing_after": 0,
-                    "indentation": {"left": 0, "right": 0, "first_line": 0},
-                    "list_type": None,
-                },
-            },
+            "global_defaults": self._default_config(),
             "layout_groups": list(group_map.values()),
+        }
+
+    # ======================================================
+    # Helpers
+    # ======================================================
+    def _extract_style(self, style):
+        """Split style dict into font and paragraph specs."""
+        font, paragraph = {}, {}
+
+        # Font
+        for k in ("font_size", "bold", "italic", "underline", "color", "name"):
+            if k in style:
+                key = "size" if k == "font_size" else k
+                font[key] = style[k]
+
+        # Paragraph
+        if "alignment" in style:
+            paragraph["alignment"] = style["alignment"]
+        if any(k in style for k in ("spacing_before", "spacing_after", "indentation")):
+            paragraph["spacing_before"] = style.get("spacing_before", 0)
+            paragraph["spacing_after"] = style.get("spacing_after", 0)
+            paragraph["indentation"] = style.get(
+                "indentation", {"left": 0, "right": 0, "first_line": 0}
+            )
+        if "list_type" in style:
+            paragraph["list_type"] = style["list_type"]
+
+        return font, paragraph
+
+    def _append_element(self, group_map, group_name, element):
+        """Safely attach an element into the correct group."""
+        if group_name not in group_map:
+            group_map[group_name] = {
+                "group": group_name,
+                "layout": {},
+                "section_types": [],
+                "elements": [],
+            }
+        group_map[group_name]["elements"].append(element)
+
+    def _assign_headers(self, group_map):
+        for idx, h in enumerate(self.headers):
+            target = f"group{idx}" if f"group{idx}" in group_map else "group0"
+            group_map[target]["header"] = {"file": h["file"], "text": h["text"]}
+
+    def _assign_footers(self, group_map):
+        for idx, f in enumerate(self.footers):
+            target = f"group{idx}" if f"group{idx}" in group_map else "group0"
+            group_map[target]["footer"] = {"file": f["file"], "text": f["text"]}
+
+    def _default_config(self):
+        return {
+            "page_margins": {
+                "top": 1440,
+                "bottom": 1440,
+                "left": 1440,
+                "right": 1440,
+                "header": 720,
+                "footer": 720,
+                "gutter": 0,
+            },
+            "page_size": {
+                "width": 12240,
+                "height": 15840,
+                "orientation": "portrait",
+            },
+            "font": {
+                "name": "Arial",
+                "size": 16,
+                "bold": False,
+                "italic": False,
+                "underline": False,
+                "color": "000000",
+            },
+            "paragraph": {
+                "alignment": "left",
+                "spacing_before": 0,
+                "spacing_after": 0,
+                "indentation": {"left": 0, "right": 0, "first_line": 0},
+                "list_type": None,
+            },
         }
