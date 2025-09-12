@@ -22,24 +22,24 @@ class ConfigExporter:
         self.titles_config = titles_config
         self.docx_config = docx_config
 
-    def save_to_files(self, output_dir, titles_filename="titles_config.json", main_filename="docx_config.json"):
+    def save_to_files(self, output_dir, titles_filename="titles_config.json", docx_filename="docx_config.json"):
         """
         Write both configs to disk as JSON files in the specified directory.
 
         :param output_dir: Directory to write the files into.
         :param titles_filename: Optional override for titles config filename.
-        :param main_filename: Optional override for main config filename.
-        :return: (titles_path, main_path)
+        :param docx_filename: Optional override for docx config filename.
+        :return: (titles_path, docx_path)
         """
         os.makedirs(output_dir, exist_ok=True)
 
         titles_path = os.path.join(output_dir, titles_filename)
-        main_path = os.path.join(output_dir, main_filename)
+        docx_path = os.path.join(output_dir, docx_filename)
 
         with open(titles_path, "w", encoding="utf-8") as f:
             json.dump(self.titles_config, f, indent=2)
 
-        with open(main_path, "w", encoding="utf-8") as f:
+        with open(docx_path, "w", encoding="utf-8") as f:
             json.dump(self.docx_config, f, indent=2)
 
-        return titles_path, main_path
+        return titles_path, docx_path
