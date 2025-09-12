@@ -26,7 +26,7 @@ from .regex_maker import (
     RegexDetection,
 )
 
-from .heading_detector import (
+from .heuristics.heading_detector import (
     HeadingDetection,
     score_heading,
     detect_headings,
