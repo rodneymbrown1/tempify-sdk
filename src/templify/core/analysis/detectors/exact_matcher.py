@@ -16,8 +16,6 @@ def _extract_titles(domain_pack: Dict[str, Any] | Iterable[str] | None) -> List[
     if domain_pack is None:
         return []
     if isinstance(domain_pack, dict):
-        # common shapes:
-        # {"titles":[...]} or {"sections":[{"title":...}, ...]}
         if "titles" in domain_pack and isinstance(domain_pack["titles"], list):
             return [str(t) for t in domain_pack["titles"]]
         if "sections" in domain_pack and isinstance(domain_pack["sections"], list):
@@ -27,7 +25,6 @@ def _extract_titles(domain_pack: Dict[str, Any] | Iterable[str] | None) -> List[
                 if t:
                     out.append(str(t))
             return out
-    # already an iterable of strings
     return [str(t) for t in domain_pack]
 
 
