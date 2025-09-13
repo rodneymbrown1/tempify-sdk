@@ -53,3 +53,21 @@ def regex_search_lines(
                 hits.append(RegexDetection(i, title, score, rgx.pattern))
                 break
     return hits
+
+def match(lines, domain=None, **kwargs):
+    """
+    Standardized entrypoint for the router.
+    Delegates to regex-based detection.
+    """
+    phrases = []
+    if domain:
+        if isinstance(domain, dict):
+            if "titles" in domain and isinstance(domain["titles"], list):
+                phrases = [str(t) for t in domain["titles"]]
+            elif "sections" in domain and isinstance(domain["sections"], list):
+                phrases = [str(s.get("title")) for s in domain["sections"] if isinstance(s, dict) and s.get("title")]
+        elif isinstance(domain, (list, tuple)):
+            phrases = [str(t) for t in domain]
+
+    regexes = build_regexes_from_phrases(phrases)
+    return regex_search_lines(lines, regexes)

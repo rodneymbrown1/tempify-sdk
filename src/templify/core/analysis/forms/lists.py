@@ -1,38 +1,54 @@
 from __future__ import annotations
-from typing import Dict, Any
+from enum import Enum
+from typing import Dict, Any, Optional
+
 from templify.core.analysis.detectors.heuristics.list_detector import (
     BULLET_RE, ORDERED_RE, ORDERED_NESTED_RE,
     DEFINITION_RE, INDENTED_RE,
 )
 
-def classify_list_line(text: str, features: Dict[str, Any] | None = None) -> str:
+
+class ListForm(str, Enum):
     """
-    Map a line (already detected as 'list') into a specific subtype:
-    L-BULLET, L-ORDERED, L-CONTINUATION, L-DEFINITION
+    Axis 1 — List subtypes.
+
+    Canonical forms of lists detected in text or DOCX.
+    """
+
+    L_BULLET       = "L-BULLET"        # Bulleted list items
+    L_ORDERED      = "L-ORDERED"       # Ordered / numbered lists
+    L_DEFINITION   = "L-DEFINITION"    # Definition-style lists
+    L_CONTINUATION = "L-CONTINUATION"  # Continuation / wrapped lines
+    L_UNKNOWN      = "L-UNKNOWN"       # Fallback
+
+
+def classify_list_line(text: str, features: Optional[Dict[str, Any]] = None) -> ListForm:
+    """
+    Map a line (already detected as 'list') into a specific ListForm subtype.
     """
     s = (text or "").strip()
     if not s:
-        return "L-UNKNOWN"
+        return ListForm.L_UNKNOWN
 
     # Regex-based classification
     if BULLET_RE.match(s):
-        return "L-BULLET"
+        return ListForm.L_BULLET
     if ORDERED_RE.match(s) or ORDERED_NESTED_RE.match(s):
-        return "L-ORDERED"
+        return ListForm.L_ORDERED
     if DEFINITION_RE.match(s):
-        return "L-DEFINITION"
+        return ListForm.L_DEFINITION
     if INDENTED_RE.match(s):
-        return "L-CONTINUATION"
+        return ListForm.L_CONTINUATION
 
     # Metadata fallbacks (from DOCX/plaintext context)
     if features:
         if features.get("is_bullet"):
-            return "L-BULLET"
+            return ListForm.L_BULLET
         if features.get("is_numbered"):
-            return "L-ORDERED"
+            return ListForm.L_ORDERED
         if features.get("indent_level", 0) > 0:
-            return "L-CONTINUATION"
+            return ListForm.L_CONTINUATION
         if features.get("style_name", "").lower().startswith("definition"):
-            return "L-DEFINITION"
+            return ListForm.L_DEFINITION
 
-    return "L-UNKNOWN"
+    return ListForm.L_UNKNOWN

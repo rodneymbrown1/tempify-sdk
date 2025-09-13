@@ -146,3 +146,10 @@ def detect_headings(
             preds.append(HeadingDetection(i, label, sc))
 
     return preds
+
+def match(lines, features=None, domain=None, threshold: float = 0.55, **kwargs):
+    """
+    Standardized entrypoint for the router.
+    Delegates to the heuristic heading detector.
+    """
+    return detect_headings(lines, threshold=threshold)

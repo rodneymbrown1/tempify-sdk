@@ -1,10 +1,10 @@
-# src/templify/core/analysis/detectors/semantic_classifier.py
 from __future__ import annotations
 from dataclasses import dataclass
 from difflib import SequenceMatcher
-from typing import Iterable, List, Dict, Any, Sequence, Union
+from typing import Iterable, List, Dict, Sequence, Union, Any
 from templify.core.analysis.utils.plaintext_context import PlaintextContext
 from templify.core.analysis.detectors.utils import coerce_to_lines
+
 
 @dataclass(frozen=True)
 class SemanticPrediction:
@@ -12,6 +12,7 @@ class SemanticPrediction:
     title: str
     score: float
     method: str = "semantic"
+
 
 def _extract_titles(domain_pack: Dict[str, Any] | Iterable[str] | None) -> List[str]:
     if domain_pack is None:
@@ -50,7 +51,15 @@ def semantic_classify(
     lines: Union[Sequence[str], PlaintextContext],
     candidates: Iterable[str],
     threshold: float = 0.82,
+    return_fallback: bool = True,
 ) -> List[SemanticPrediction]:
+    """
+    Compare lines against candidate titles and return predictions.
+
+    - If score >= threshold → return as strong prediction.
+    - If no scores meet threshold and return_fallback=True → return best match with low confidence.
+    - If no candidates → return [].
+    """
     L = coerce_to_lines(lines)
     C = [str(c) for c in candidates]
     preds: List[SemanticPrediction] = []
@@ -65,14 +74,19 @@ def semantic_classify(
             if r > best:
                 best = r
                 best_title = c
-        if best_title is not None and best >= threshold:
-            preds.append(SemanticPrediction(i, best_title, best))
+
+        if best_title is not None:
+            if best >= threshold:
+                preds.append(SemanticPrediction(i, best_title, best))
+            elif return_fallback:
+                preds.append(SemanticPrediction(i, best_title, best))
     return preds
 
 
 class SemanticClassifier:
-    def __init__(self, threshold: float = 0.82) -> None:
+    def __init__(self, threshold: float = 0.82, return_fallback: bool = True) -> None:
         self.threshold = threshold
+        self.return_fallback = return_fallback
 
     def classify(
         self,
@@ -80,4 +94,18 @@ class SemanticClassifier:
         domain_pack: Dict[str, Any] | Iterable[str] | None,
     ) -> List[SemanticPrediction]:
         titles = _extract_titles(domain_pack)
-        return semantic_classify(context_or_lines, titles, threshold=self.threshold)
+        return semantic_classify(
+            context_or_lines,
+            titles,
+            threshold=self.threshold,
+            return_fallback=self.return_fallback,
+        )
+
+
+def match(lines, features=None, domain=None, threshold: float = 0.82, **kwargs):
+    """
+    Standardized entrypoint for the router.
+    Delegates to the semantic classifier.
+    """
+    titles = _extract_titles(domain)
+    return semantic_classify(lines, titles, threshold=threshold)

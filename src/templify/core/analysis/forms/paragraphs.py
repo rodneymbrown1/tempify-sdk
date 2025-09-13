@@ -1,39 +1,51 @@
 from __future__ import annotations
 import re
-from typing import Dict, Any
+from enum import Enum
+from typing import Dict, Any, Optional
 
-# Keyword triggers for summaries/abstracts
-SUMMARY_KEYWORDS = {
-    "summary", "abstract", "overview", "conclusion", "highlights"
-}
+# Precompiled keyword regexes with word boundaries
+SUMMARY_PATTERNS = [
+    re.compile(rf"\b{kw}\b", re.IGNORECASE)
+    for kw in ("summary", "abstract", "overview", "conclusion", "highlights")
+]
+
+
+class ParagraphForm(str, Enum):
+    """
+    Axis 1 — Paragraph subtypes.
+
+    Canonical forms of paragraphs detected in text or DOCX.
+    """
+
+    P_BODY    = "P-BODY"     # Regular body text
+    P_LEAD    = "P-LEAD"     # Lead-in / first-after-heading
+    P_SUMMARY = "P-SUMMARY"  # Summaries, abstracts, conclusions
+    P_UNKNOWN = "P-UNKNOWN"  # Fallback
+
 
 def classify_paragraph_line(
     text: str,
-    features: Dict[str, Any] | None = None,
+    features: Optional[Dict[str, Any]] = None,
     *,
     is_first_after_heading: bool = False,
-) -> str:
+) -> ParagraphForm:
     """
-    Map a line (already detected as 'paragraph') into a subtype:
-    P-BODY, P-LEAD, P-SUMMARY.
+    Map a line (already detected as 'paragraph') into a specific ParagraphForm subtype.
     """
     s = (text or "").strip()
     if not s:
-        return "P-UNKNOWN"
+        return ParagraphForm.P_UNKNOWN
 
-    # --- Summary/abstract detection ---
-    lower = s.lower()
-    if any(kw in lower for kw in SUMMARY_KEYWORDS):
-        return "P-SUMMARY"
-
-    # --- Lead paragraph detection ---
+    # --- Lead paragraph detection takes precedence ---
     if is_first_after_heading:
-        # Features can help disambiguate (e.g., bold, italic, font size boost)
-        if features:
-            if features.get("bold") or features.get("italic"):
-                return "P-LEAD"
-        # Even without features, first-after-heading can be lead
-        return "P-LEAD"
+        if features and (features.get("bold") or features.get("italic")):
+            return ParagraphForm.P_LEAD
+        return ParagraphForm.P_LEAD
+
+    # --- Summary/abstract detection (with stricter regex) ---
+    lower = s.lower()
+    if any(pat.search(lower) for pat in SUMMARY_PATTERNS):
+        return ParagraphForm.P_SUMMARY
 
     # --- Default body text ---
-    return "P-BODY"
+    return ParagraphForm.P_BODY

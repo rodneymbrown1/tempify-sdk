@@ -122,3 +122,11 @@ def detect_paragraphs(
             preds.append(ParagraphDetection(i, label, sc))
 
     return preds
+
+
+def match(lines, features=None, domain=None, threshold: float = 0.55, **kwargs):
+    """
+    Standardized entrypoint for the router.
+    Delegates to the heuristic paragraph detector.
+    """
+    return detect_paragraphs(lines, threshold=threshold)

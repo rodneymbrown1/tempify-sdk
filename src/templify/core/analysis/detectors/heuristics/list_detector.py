@@ -67,3 +67,10 @@ def detect_lists(
             preds.append(ListDetection(i, "list", sc))
 
     return preds
+
+def match(lines, features=None, domain=None, threshold: float = 0.55, **kwargs):
+    """
+    Standardized entrypoint for the router.
+    Delegates to the heuristic list detector.
+    """
+    return detect_lists(lines, threshold=threshold)

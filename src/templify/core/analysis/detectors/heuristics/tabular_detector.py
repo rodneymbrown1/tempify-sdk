@@ -81,3 +81,10 @@ def detect_tabular(
             preds.append(TabularDetection(i, label, sc))
 
     return preds
+
+def match(lines, features=None, domain=None, threshold: float = 0.55, **kwargs):
+    """
+    Standardized entrypoint for the router.
+    Delegates to the heuristic tabular detector.
+    """
+    return detect_tabular(lines, threshold=threshold)
