@@ -75,5 +75,12 @@ def match(text, **kwargs):
     Standardized entrypoint for the router.
     Delegates to existing exact-match logic.
     """
-    return find_exact_matches(text, **kwargs)  # adjust this name to your real function
+    # Strip out keys find_exact_matches doesn’t expect
+    candidates = kwargs.pop("candidates", None)
+    case_insensitive = kwargs.pop("case_insensitive", True)
 
+    if candidates is None:
+        # If no candidates provided, nothing to match
+        return []
+
+    return find_exact_matches(text, candidates, case_insensitive=case_insensitive)
