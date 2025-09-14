@@ -42,7 +42,6 @@ def route_match(structure: str, text: str, features=None, domain=None):
     return PatternDescriptor(
         class_="UNKNOWN",
         signals=["FALLBACK"],
-        granularity="LINE",
         confidence=0.0,
         features={"text": text},
         domain_hint=domain or "GENERIC"
