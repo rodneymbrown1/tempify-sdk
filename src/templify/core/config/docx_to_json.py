@@ -4,9 +4,9 @@ import os
 import glob
 import re
 import xml.etree.ElementTree as ET
-
-from templify.core.config.generator import ConfigGenerator
-from templify.core.config.exporter import ConfigExporter
+from templify.core.analysis.matcher import route_match
+from templify.core.config.config_generator import ConfigGenerator
+from templify.core.config.config_exporter import ConfigExporter
 from templify.core.config.docx_styles_mapper import DocxStylesMapper
 
 
@@ -59,56 +59,35 @@ class DocxToJsonParser:
     # Title extraction
     # -------------------------
     def extract_titles(self):
-        if self.expected_titles:
-            # Use rigid expected titles list
-            for idx, t in enumerate(self.expected_titles, start=1):
-                if isinstance(t, str):
-                    title_text = t
-                    detection_pattern = f"^{re.escape(t)}$"
-                elif isinstance(t, dict) and "title" in t:
-                    title_text = t["title"]
-                    detection_pattern = t.get("pattern", f"^{re.escape(title_text)}$")
-                else:
-                    continue
-
-                self.titles.append(
-                    {
-                        "title": title_text,
-                        "layout_group": "group0",
-                        "section_type": f"section{idx}_title",
-                        "style": {},
-                        "title_detection": {
-                            "pattern": detection_pattern,
-                            "case_sensitive": False,
-                        },
-                    }
-                )
-            return
-
-        # Default discovery mode
         for p in self.body.findall("w:p", namespaces=self.nsmap):
-            title_candidate = self.parse_paragraph_for_title(p)
-            if title_candidate:
-                title_text, style_info = title_candidate
-                self.titles.append(
-                    {
-                        "title": title_text,
-                        "layout_group": self.current_group,
-                        "section_type": f"section{len(self.titles) + 1}_title",
-                        "style": style_info,
-                        "title_detection": {
-                            "pattern": f"^{re.escape(title_text)}$",
-                            "case_sensitive": False,
-                        },
-                    }
-                )
+            texts = [t.text for t in p.findall(".//w:t", namespaces=self.nsmap) if t.text]
+            full_text = " ".join(texts).strip()
+            if not full_text:
+                continue
 
-            # Detect section breaks
-            sectPr = p.find("w:pPr/w:sectPr", namespaces=self.nsmap)
-            if sectPr is not None:
-                self.group_counter += 1
-                self.current_group = f"group{self.group_counter}"
+            # classify first
+            desc = route_match("heading", full_text, features={})
+            if not desc.class_.startswith("H-"):   # only keep real headings
+                continue
 
+            style_info = {}
+            pStyle = p.find("w:pPr/w:pStyle", namespaces=self.nsmap)
+            if pStyle is not None:
+                style_id = pStyle.attrib.get(f"{{{self.nsmap['w']}}}val")
+                style_info = self.style_mapper.styles["paragraphs"].get(style_id, {}).copy()
+                style_info["pStyle"] = style_id
+
+            self.titles.append({
+                "title": full_text,
+                "layout_group": self.current_group,
+                "section_type": f"section{len(self.titles) + 1}_title",
+                "style": style_info,
+                "title_detection": {
+                    "pattern": f"^{re.escape(full_text)}$",
+                    "case_sensitive": False,
+                },
+            })
+            
     def parse_paragraph_for_title(self, p):
         texts = [t.text for t in p.findall(".//w:t", namespaces=self.nsmap) if t.text]
         full_text = " ".join(texts).strip()
@@ -117,13 +96,16 @@ class DocxToJsonParser:
 
         # Look for style info if available
         style_info = {}
+        pStyle = None
         pPr = p.find("w:pPr", namespaces=self.nsmap)
         if pPr is not None:
             pStyle = pPr.find("w:pStyle", namespaces=self.nsmap)
-            if pStyle is not None:
-                style_id = pStyle.attrib.get(f"{{{self.nsmap['w']}}}val")
-                style_info = self.style_mapper.styles["paragraphs"].get(style_id, {})
 
+        if pStyle is not None:
+            style_id = pStyle.attrib.get(f"{{{self.nsmap['w']}}}val")
+            style_info = self.style_mapper.styles["paragraphs"].get(style_id, {}).copy()
+            style_info["pStyle"] = style_id
+        
         return full_text, style_info
 
     # -------------------------
@@ -192,6 +174,18 @@ class DocxToJsonParser:
                     )
 
                 self.layout_groups.append(layout)
+        # after for-loop
+        body_sectPr = self.body.find("w:sectPr", namespaces=self.nsmap)
+        if body_sectPr is not None:
+            group_name = f"group{len(self.layout_groups)}"
+            layout = {"group": group_name, "layout": {}, "section_types": []}
+            sect_type = body_sectPr.find("w:type", namespaces=self.nsmap)
+            if sect_type is not None:
+                layout["layout"]["section_break"] = sect_type.attrib.get(
+                    "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}val", "nextPage"
+                )
+            self.layout_groups.append(layout)
+
 
     # -------------------------
     # Run the pipeline
@@ -204,14 +198,57 @@ class DocxToJsonParser:
         self.extract_hyperlinks()
         self.extract_headers_footers()
 
+        # --- Collect patterns ---
+        pattern_set = {}
+
+        def add_pattern(desc):
+            d = desc.to_dict()
+            key = (
+                d.get("class"),
+                d.get("regex") or d.get("exact_set") or d.get("pattern"),
+                d.get("style"),
+            )
+            pattern_set[key] = d
+
+
+        for t in self.titles:
+            desc = route_match("heading", t["title"], features=t.get("style"))
+            add_pattern(desc)
+
+        for lst in self.lists:
+            desc = route_match("list", lst["text"])
+            add_pattern(desc)
+
+        # Include body paragraphs
+        for p in self.body.findall("w:p", namespaces=self.nsmap):
+            text = " ".join(t.text for t in p.findall(".//w:t", namespaces=self.nsmap) if t.text)
+            if not text.strip():
+                continue
+
+            desc = route_match("paragraph", text)
+
+            # --- Heuristic guardrails ---
+            # Only keep if confidence ≥ 0.55
+            if getattr(desc, "confidence", 0.0) < 0.55:
+                continue
+
+            # Deduplicate by class + style + normalized text
+            d = desc.to_dict()
+            key = (
+                d.get("class"),
+                d.get("style"),
+                d.get("pattern") or d.get("regex") or d.get("exact_set"),
+            )
+
+            if key in pattern_set:
+                continue  # skip near-duplicates
+
+            add_pattern(desc)
+
+
         generator = ConfigGenerator(
-            self.titles,
-            self.layout_groups,
-            self.lists,
-            self.images,
-            self.hyperlinks,
-            self.headers,
-            self.footers,
+            self.titles, self.layout_groups, self.lists, self.images, self.hyperlinks, self.headers, self.footers,
+            patterns=list(pattern_set.values()),
         )
         self.titles_config = generator.build_titles_config()
         self.docx_config = generator.build_docx_config()
@@ -224,3 +261,5 @@ class DocxToJsonParser:
             raise RuntimeError("Parser must be run() before export().")
         exporter = ConfigExporter(self.titles_config, self.docx_config)
         return exporter.save_to_files(output_dir)
+    
+
