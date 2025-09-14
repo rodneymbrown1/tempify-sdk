@@ -4,8 +4,8 @@ from typing import Optional, Union, Tuple
 
 from templify.core.workspace import Workspace
 from templify.core.utils.docx_intake import intake_docx
-from templify.core.config.docx_to_json import DocxToJsonParser
-from templify.core.config.config_exporter import ConfigExporter
+from templify.core.schema.templify_schema_builder import TemplifySchemaBuilder
+from templify.core.schema.utils.schema_saver import SchemaSaver
 
 
 def _generate_configs_core(
@@ -17,11 +17,11 @@ def _generate_configs_core(
     """
     LOW-LEVEL CORE: expects path to word/document.xml (already unzipped).
     """
-    parser = DocxToJsonParser(str(docx_path), str(extract_dir) if extract_dir else None, expected_titles)
+    parser = TemplifySchemaBuilder(str(docx_path), str(extract_dir) if extract_dir else None, expected_titles)
     parser.run()
 
     if output_dir:
-        exporter = ConfigExporter(parser.titles_config, parser.docx_config)
+        exporter = SchemaSaver(parser.titles_config, parser.docx_config)
         titles_path_str, main_path_str = exporter.save_to_files(str(output_dir))
         # Return Path objects (clean, test-friendly API)
         return Path(titles_path_str), Path(main_path_str)
@@ -74,11 +74,11 @@ def generate_configs_from_xml(
         If output_dir is None -> (titles_config: dict, docx_config: dict)
         Else                  -> (titles_path: Path, main_path: Path)
     """
-    parser = DocxToJsonParser(str(document_xml_path), str(extract_dir) if extract_dir else None, expected_titles)
+    parser = TemplifySchemaBuilder(str(document_xml_path), str(extract_dir) if extract_dir else None, expected_titles)
     parser.run()
 
     if output_dir:
-        exporter = ConfigExporter(parser.titles_config, parser.docx_config)
+        exporter = SchemaSaver(parser.titles_config, parser.docx_config)
         titles_path_str, main_path_str = exporter.save_to_files(str(output_dir))
         return Path(titles_path_str), Path(main_path_str)
 

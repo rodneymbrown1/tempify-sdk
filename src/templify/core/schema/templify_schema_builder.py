@@ -1,16 +1,131 @@
 # src/templify/core/config/docx_to_json.py
-
+from __future__ import annotations
 import os
 import glob
-import re
 import xml.etree.ElementTree as ET
+from typing import List, Dict, Any
+
 from templify.core.analysis.matcher import route_match
-from templify.core.config.config_generator import ConfigGenerator
-from templify.core.config.config_exporter import ConfigExporter
-from templify.core.config.docx_styles_mapper import DocxStylesMapper
+from templify.core.analysis.utils.pattern_descriptor import PatternDescriptor
+from templify.core.analysis.utils.section import Section
+from templify.core.schema.utils.section_builder import build_sections_from_headings
+from templify.core.schema.schema_generator import SchemaGenerator
+from templify.core.schema.utils.docx_styles_mapper import DocxStylesMapper
+from templify.core.analysis.detectors.heuristics.heading_detector import detect_headings
+from templify.core.schema.utils.schema_saver import SchemaSaver
+
+class TemplifySchemaBuilder:
+    """
+    Parse a DOCX XML and build a Templify schema.
+
+    Produces:
+      - sections (recursive Section tree)
+      - layout_groups
+      - global_defaults
+    """
+
+    def __init__(self, document_xml_path: str, docx_extract_dir: str | None = None):
+        if not os.path.exists(document_xml_path):
+            raise FileNotFoundError(f"document.xml not found: {document_xml_path}")
+
+        with open(document_xml_path, "r", encoding="utf-8") as f:
+            document_xml = f.read()
+
+        self.nsmap = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
+        self.tree = ET.fromstring(document_xml)
+        self.body = self.tree.find(".//w:body", namespaces=self.nsmap)
+
+        self.docx_extract_dir = docx_extract_dir
+        self.style_mapper = DocxStylesMapper(document_xml_path, docx_extract_dir)
+        self.style_mapper.collect_styles()
+
+        # Will hold results
+        self.sections: List[Section] = []
+        self.layout_groups: List[Dict[str, Any]] = []
+        self.global_defaults: Dict[str, Any] = {}
+
+    # ------------------------------------------------------------------
+    # Extractors
+    # ------------------------------------------------------------------
+    def extract_headings(self) -> List[PatternDescriptor]:
+        """Detect headings and coerce into PatternDescriptors."""
+        lines = []
+        for p in self.body.findall("w:p", namespaces=self.nsmap):
+            texts = [t.text for t in p.findall(".//w:t", namespaces=self.nsmap) if t.text]
+            if texts:
+                lines.append(" ".join(texts).strip())
+
+        detections = detect_headings(lines)
+        descriptors: List[PatternDescriptor] = []
+        for det in detections:
+            desc = route_match("heading", det.clean_text or lines[det.line_idx])
+            # Inject hierarchy metadata into features
+            desc.features = desc.features or {}
+            desc.features.update({
+                "level": det.level,
+                "numbering": det.numbering,
+                "clean_text": det.clean_text,
+            })
+            descriptors.append(desc)
+
+        # Build recursive Section tree
+        self.sections = build_sections_from_headings(detections, descriptors)
+        return descriptors
+
+    def extract_layouts(self):
+        """Simplified: detect sectPr for layout groups."""
+        self.layout_groups = []
+        group_index = -1
+        for p in self.body.findall("w:p", namespaces=self.nsmap):
+            sectPr = p.find("w:pPr/w:sectPr", namespaces=self.nsmap)
+            if sectPr is not None:
+                group_index += 1
+                group_name = f"group{group_index}"
+                self.layout_groups.append({
+                    "group": group_name,
+                    "layout": {
+                        "columns": 2,  # TODO: parse from sectPr
+                        "margins": {"left": 1440, "right": 1440},
+                        "orientation": "portrait",
+                    },
+                })
+
+        # Always add a fallback
+        if not self.layout_groups:
+            self.layout_groups.append({
+                "group": "group0",
+                "layout": {
+                    "columns": 2,
+                    "margins": {"left": 1440, "right": 1440},
+                    "orientation": "portrait",
+                },
+            })
+
+    def extract_global_defaults(self):
+        """Baseline defaults (could parse from document.xml later)."""
+        self.global_defaults = {
+            "page_size": {"width": 12240, "height": 15840},
+            "font": {"name": "Arial", "size": 12},
+            "paragraph": {"alignment": "left"},
+        }
+
+    # ------------------------------------------------------------------
+    # Pipeline
+    # ------------------------------------------------------------------
+    def run(self) -> Dict[str, Any]:
+        self.extract_headings()
+        self.extract_layouts()
+        self.extract_global_defaults()
+
+        generator = SchemaGenerator(
+            sections=self.sections,
+            layout_groups=self.layout_groups,
+            global_defaults=self.global_defaults,
+        )
+        return generator.generate()
 
 
-class DocxToJsonParser:
+class TemplifySchemaBuilder:
     """
     Parses a DOCX (document.xml + related parts) into structured JSON configs.
 
@@ -246,7 +361,7 @@ class DocxToJsonParser:
             add_pattern(desc)
 
 
-        generator = ConfigGenerator(
+        generator = SchemaGenerator(
             self.titles, self.layout_groups, self.lists, self.images, self.hyperlinks, self.headers, self.footers,
             patterns=list(pattern_set.values()),
         )
@@ -259,7 +374,7 @@ class DocxToJsonParser:
     def export(self, output_dir):
         if self.titles_config is None or self.docx_config is None:
             raise RuntimeError("Parser must be run() before export().")
-        exporter = ConfigExporter(self.titles_config, self.docx_config)
+        exporter = SchemaSaver(self.titles_config, self.docx_config)
         return exporter.save_to_files(output_dir)
     
 

@@ -2,12 +2,12 @@ import os
 import json
 
 
-class ConfigExporter:
+class SchemaSaver:
     """
     Exports Templify configs (titles_config and docx_config) to disk as JSON files.
 
     Usage:
-        exporter = ConfigExporter(titles_config, docx_config)
+        exporter = SchemaSaver(titles_config, docx_config)
         exporter.save_to_files("output/")
     """
 
