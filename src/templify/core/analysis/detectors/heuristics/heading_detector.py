@@ -14,6 +14,9 @@ class HeadingDetection:
     label: str
     score: float
     method: str = "heuristic"
+    level: Optional[int] = None       # hierarchy depth (1=top-level)
+    numbering: Optional[str] = None   # "2.", "2.1", "III", etc.
+    clean_text: Optional[str] = None  # stripped version
 
 # ---------- Infrastructure ----------
 Predicate = Callable[[str], bool]
@@ -138,14 +141,50 @@ def detect_headings(
     for i, s in enumerate(lines):
         feats = None
         if extract_line_features:
-            try: feats = extract_line_features(s)
-            except Exception: feats = None
+            try:
+                feats = extract_line_features(s)
+            except Exception:
+                feats = None
 
         sc = score_heading(s, feats, clues=clues)
         if sc >= threshold:
-            preds.append(HeadingDetection(i, label, sc))
-
+            numbering, level, clean = _extract_numbering_and_level(s)
+            preds.append(
+                HeadingDetection(
+                    line_idx=i,
+                    label=label,
+                    score=sc,
+                    numbering=numbering,
+                    level=level,
+                    clean_text=clean,
+                )
+            )
     return preds
+
+
+def _extract_numbering_and_level(text: str) -> tuple[Optional[str], Optional[int], str]:
+    """
+    Pull out numbering tokens and derive hierarchy level.
+    Returns (numbering, level, clean_text).
+    """
+    s = text.strip()
+
+    # Match decimal numbering like 2.1.3
+    if m := _NUM_HEAD_RE.match(s):
+        numbering = m.group(0).strip()
+        clean = strip_leading_numbering(s)
+        level = numbering.count(".") + 1  # "2"=1, "2.1"=2, "2.1.3"=3
+        return numbering, level, clean
+
+    # Match roman numerals
+    if m := _ROMAN_HEAD_RE.match(s):
+        numbering = m.group(0).strip()
+        clean = strip_leading_heading(s)
+        # Treat all romans as top-level unless nested later
+        return numbering, 1, clean
+
+    # No explicit numbering → infer level by heuristics (font/size/style)
+    return None, None, strip_trailing_dot(s)
 
 def match(lines, features=None, domain=None, threshold: float = 0.55, **kwargs):
     """
