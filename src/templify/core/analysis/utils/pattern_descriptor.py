@@ -16,6 +16,7 @@ class PatternDescriptor:
     signals: List[str]
     granularity: str
     regex: Optional[str] = None
+    pattern: Optional[str] = None
     features: Optional[Dict[str, Any]] = None
     confidence: float = 0.0
     style_hint: Optional[str] = None
@@ -26,6 +27,11 @@ class PatternDescriptor:
         out["class"] = out.pop("class_")  # rename for JSON
         return out
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to JSON-serializable dict, excluding None values."""
+        d = asdict(self)
+        # remove None or empty values for compactness
+        return {k: v for k, v in d.items() if v not in (None, [], {}, "")}
 
 def coerce_to_descriptor(raw: Any, signal: str = "GENERIC") -> PatternDescriptor:
     """
@@ -45,6 +51,7 @@ def coerce_to_descriptor(raw: Any, signal: str = "GENERIC") -> PatternDescriptor
             signals=[signal],
             granularity=raw.get("granularity", "LINE"),
             regex=raw.get("regex"),
+            pattern=raw.get("pattern"),
             features=raw.get("features"),
             confidence=raw.get("confidence", 0.0),
             style_hint=raw.get("style_hint"),

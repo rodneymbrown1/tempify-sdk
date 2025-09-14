@@ -1,37 +1,40 @@
-# templify/core/utils/plaintext_intake.py
+# src/templify/core/utils/plaintext_intake.py
 from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Union, Literal, Dict
+from typing import Optional, Union, Literal, Dict, List
 import uuid
 import unicodedata
 import hashlib
 import re
+from templify.core.workspace import Workspace  
+from templify.core.analysis.detectors.heuristic_classifier import classify_lines
 
-try:
-    # Optional import: don't hard-depend on Workspace at import time
-    from templify.core.workspace import Workspace  # type: ignore
-except Exception:
-    Workspace = object  # fallback for typing
 
 LineEnding = Literal["LF", "CRLF", "CR", "MIXED", "UNKNOWN"]
 
 _ZW_RE = re.compile(r"[\u200B-\u200D\uFEFF]")  # zero-width chars
+
 
 @dataclass(frozen=True)
 class PlaintextIntakeResult:
     stored_plaintext_path: Optional[Path]
     text_raw: str
     text_norm: str
-    lines: list[str]
+    lines: List[str]
     encoding: str
     bom_stripped: bool
     original_line_ending: LineEnding
     normalized_line_ending: LineEnding
     checksum_sha256: str
     stats: Dict[str, int]
+    line_patterns: Optional[List[Dict[str, object]]] = None  # <-- new: classification metadata
 
+
+# -------------------------
+# Low-level helpers
+# -------------------------
 def _detect_line_ending(s: str) -> LineEnding:
     crlf = s.count("\r\n")
     cr = s.count("\r") - crlf
@@ -46,6 +49,7 @@ def _detect_line_ending(s: str) -> LineEnding:
     if cr > 0:
         return "CR"
     return "LF"
+
 
 def _normalize_text(
     s: str,
@@ -72,6 +76,7 @@ def _normalize_text(
         s_norm += "\n"
     return s_norm
 
+
 def _decode_bytes(b: bytes) -> tuple[str, str, bool]:
     # Try utf-8 with BOM removal first (utf-8-sig)
     try:
@@ -89,6 +94,10 @@ def _decode_bytes(b: bytes) -> tuple[str, str, bool]:
         s = b.decode("latin-1", errors="strict")
         return s, "latin-1", False
 
+
+# -------------------------
+# Main intake
+# -------------------------
 def intake_plaintext(
     source: Union[str, Path, bytes],
     *,
@@ -105,8 +114,10 @@ def intake_plaintext(
     - Normalizes encoding/line endings/unicode.
     - Splits into lines (preserving blank lines).
     - Optionally stores normalized text in workspace.input_plaintext.
+    - Optionally classifies each line using detection heuristics.
 
-    Returns PlaintextIntakeResult with both raw and normalized views.
+    Returns PlaintextIntakeResult with both raw and normalized views,
+    plus optional line_patterns classification metadata.
     """
     # 1) Load into bytes if needed
     if isinstance(source, Path):
@@ -141,7 +152,7 @@ def intake_plaintext(
     normalized_le = "LF" if "\n" in text_norm else "UNKNOWN"
 
     # 5) Lines
-    lines = text_norm.splitlines()  # drops trailing newline in the split result; that's okay for analysis
+    lines = text_norm.splitlines()  # drops trailing newline in split result; that's okay
 
     # 6) Stats & checksum
     stats = {
@@ -162,6 +173,14 @@ def intake_plaintext(
         stored_path = stored_dir / fname
         stored_path.write_text(text_norm, encoding="utf-8")
 
+    # 8) Optional pattern detection
+    line_patterns = None
+    if classify_lines is not None:
+        try:
+            line_patterns = classify_lines(lines)
+        except Exception:
+            line_patterns = None
+
     return PlaintextIntakeResult(
         stored_plaintext_path=stored_path,
         text_raw=text_decoded,
@@ -173,4 +192,5 @@ def intake_plaintext(
         normalized_line_ending=normalized_le,
         checksum_sha256=checksum,
         stats=stats,
+        line_patterns=line_patterns,
     )
