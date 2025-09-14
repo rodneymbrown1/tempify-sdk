@@ -5,7 +5,7 @@ from typing import Optional, Union, Tuple
 from templify.core.workspace import Workspace
 from templify.core.utils.docx_intake import intake_docx
 from templify.core.config.docx_to_json import DocxToJsonParser
-from templify.core.config.exporter import ConfigExporter
+from templify.core.config.config_exporter import ConfigExporter
 
 
 def _generate_configs_core(
