@@ -32,18 +32,29 @@ class DocxTablesMapper:
         if tblPr is None:
             return {}
         props = {}
+        # Table style
+        tblStyle = tblPr.find("w:tblStyle", namespaces=self.nsmap)
+        if tblStyle is not None:
+            props["style"] = tblStyle.attrib.get(f"{{{self.nsmap['w']}}}val")
+
+        # Alignment
         jc = tblPr.find("w:jc", namespaces=self.nsmap)
         if jc is not None:
             props["alignment"] = jc.attrib.get(f"{{{self.nsmap['w']}}}val")
+
+        # Width
         tblW = tblPr.find("w:tblW", namespaces=self.nsmap)
         if tblW is not None:
             props["width"] = tblW.attrib.get(f"{{{self.nsmap['w']}}}w")
+
+        # Borders
         borders = tblPr.find("w:tblBorders", namespaces=self.nsmap)
         if borders is not None:
             props["borders"] = {
-                side.tag.split("}")[1]: side.attrib.get(f"{{{self.nsmap['w']}}}val")
+                side.tag.split("}")[1]: side.attrib
                 for side in borders
             }
+
         return props
 
     def _parse_tblGrid(self, tblGrid) -> List[Dict[str, Any]]:
@@ -68,9 +79,15 @@ class DocxTablesMapper:
         if trPr is None:
             return {}
         props = {}
+        # Row height
         trHeight = trPr.find("w:trHeight", namespaces=self.nsmap)
         if trHeight is not None:
             props["height"] = trHeight.attrib.get(f"{{{self.nsmap['w']}}}val")
+
+        # Repeating header flag
+        if trPr.find("w:tblHeader", namespaces=self.nsmap) is not None:
+            props["is_header"] = True
+
         return props
 
     def _parse_cells(self, cells) -> List[Dict[str, Any]]:
@@ -82,11 +99,33 @@ class DocxTablesMapper:
             props = {}
             tcPr = tc.find("w:tcPr", namespaces=self.nsmap)
             if tcPr is not None:
+                # Colspan
                 gridSpan = tcPr.find("w:gridSpan", namespaces=self.nsmap)
                 if gridSpan is not None:
                     props["colspan"] = gridSpan.attrib.get(f"{{{self.nsmap['w']}}}val")
+
+                # Rowspan
                 vMerge = tcPr.find("w:vMerge", namespaces=self.nsmap)
                 if vMerge is not None:
                     props["rowspan"] = vMerge.attrib.get(f"{{{self.nsmap['w']}}}val")
+
+                # Shading (background fill)
+                shd = tcPr.find("w:shd", namespaces=self.nsmap)
+                if shd is not None:
+                    props["shading"] = shd.attrib.get(f"{{{self.nsmap['w']}}}fill")
+
+                # Cell borders
+                tcBorders = tcPr.find("w:tcBorders", namespaces=self.nsmap)
+                if tcBorders is not None:
+                    props["borders"] = {
+                        side.tag.split("}")[1]: side.attrib
+                        for side in tcBorders
+                    }
+
+                # Vertical alignment
+                vAlign = tcPr.find("w:vAlign", namespaces=self.nsmap)
+                if vAlign is not None:
+                    props["vertical_alignment"] = vAlign.attrib.get(f"{{{self.nsmap['w']}}}val")
+
             parsed_cells.append({"text": text, "properties": props})
         return parsed_cells

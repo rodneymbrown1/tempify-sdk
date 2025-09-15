@@ -4,103 +4,90 @@ from templify.core.analysis.detectors.semantic_classifier import SemanticPredict
 from templify.core.analysis.forms.headings import HeadingForm
 from templify.core.analysis.forms.paragraphs import ParagraphForm
 
-@dataclass
 class PatternDescriptor:
-    """
-    Unified schema for detector outputs and config serialization.
+    def __init__(
+        self,
+        text: str | None = None,
+        type: str | None = None,   # Axis 1 code (H-SHORT, L-BULLET, etc.)
+        *,
+        class_: str | None = None, # backward compat
+        signals: list[str] | None = None,
+        confidence: float = 1.0,
+        features: dict | None = None,
+        style: dict | None = None,
+        layout_group: str | None = None,
+        domain_hint: str = "GENERIC",
+        method: str = "heuristic",
+        paragraph_id: str | None = None,
+        score: float = 1.0,
+    ):
+        # Use Axis 1 taxonomy as canonical type
+        self.type = type or class_ or "UNKNOWN"
+        self.text = text or ""
+        self.signals = signals or []
+        self.confidence = confidence
+        self.features = features or {}
+        self.style = style or {}
+        self.layout_group = layout_group
+        self.domain_hint = domain_hint
+        self.method = method
+        self.paragraph_id = paragraph_id
+        self.id = f"pat_{id(self)}"  # stable enough for now
+        self.score = score
 
-    Matches new skeleton config spec:
-      - Anchors and body patterns carry full descriptors
-      - Structured style block (font, paragraph, list_type, etc.)
-      - Optional layout_group override
-    """
-
-    class_: str
-    signals: List[str]
-    confidence: float
-    features: Dict[str, Any] = field(default_factory=dict)
-
-    # Style properties (structured)
-    style: Optional[Dict[str, Any]] = None
-
-    # Optional overrides
-    layout_group: Optional[str] = None
-    domain_hint: Optional[str] = "GENERIC"
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Export to JSON-like dict, drop empty fields."""
-        d = asdict(self)
-        d["class"] = d.pop("class_")
-        return {k: v for k, v in d.items() if v not in (None, [], {}, "")}
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "paragraph_id": self.paragraph_id,
+            "type": self.type,          # <-- Axis 1 code
+            "text": self.text,
+            "features": self.features,
+            "score": self.score,
+            "method": self.method,
+        }
 
 def coerce_to_descriptor(raw: Any, signal: str = "GENERIC") -> PatternDescriptor:
-    # Already a descriptor
     if isinstance(raw, PatternDescriptor):
         return raw
 
-    # Dict output
     if isinstance(raw, dict):
         return PatternDescriptor(
-            class_=raw.get("class", "UNKNOWN"),
+            type=raw.get("type") or raw.get("class") or "UNKNOWN",
             signals=[signal],
             confidence=raw.get("confidence", 0.0),
             features=raw.get("features", {}),
-            style=raw.get("style"),   # full structured style now
+            style=raw.get("style"),
             layout_group=raw.get("layout_group"),
             domain_hint=raw.get("domain_hint", "GENERIC"),
         )
 
-    # HeadingForm
     if isinstance(raw, HeadingForm):
         return PatternDescriptor(
-            class_=raw.value,
+            type=raw.value,  # Axis 1: H-SHORT, H-LONG, etc.
             signals=[signal],
             confidence=0.9,
-            features={},
-            style={
-                "pStyle": "Heading1",
-                "font": {"bold": True, "size": 14},
-                "paragraph": {"alignment": "left"},
-            },
+            style={"pStyle": "Heading1"},
         )
 
-    # ParagraphForm
     if isinstance(raw, ParagraphForm):
         return PatternDescriptor(
-            class_=raw.value,
+            type=raw.value,  # Axis 1: P-BODY, P-LEAD, etc.
             signals=[signal],
             confidence=0.8,
-            features={},
-            style={
-                "pStyle": "Normal",
-                "font": {"size": 12},
-                "paragraph": {"alignment": "left"},
-            },
+            style={"pStyle": "Normal"},
         )
 
-    # SemanticPrediction
     if isinstance(raw, SemanticPrediction):
         return PatternDescriptor(
-            class_="P-BODY",
+            type="P-BODY",
             signals=["SEMANTIC"],
             confidence=raw.score,
             features={"title": raw.title},
-            style={
-                "pStyle": "Normal",
-                "font": {"size": 12},
-                "paragraph": {"alignment": "left"},
-            },
+            style={"pStyle": "Normal"},
         )
 
-    # List[SemanticPrediction]
     if isinstance(raw, list) and raw and all(isinstance(p, SemanticPrediction) for p in raw):
         best = max(raw, key=lambda p: p.score)
         return coerce_to_descriptor(best, signal="SEMANTIC")
 
-    # Fallback
-    return PatternDescriptor(
-        class_="UNKNOWN",
-        signals=[signal],
-        confidence=0.0,
-        features={"raw": str(raw)},
-    )
+    return PatternDescriptor(type="UNKNOWN", signals=[signal], confidence=0.0, features={"raw": str(raw)})

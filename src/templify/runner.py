@@ -1,80 +1,54 @@
-# src/templify/runner.py
+from __future__ import annotations
+import argparse
+import json
+import sys
 from pathlib import Path
-from typing import Optional, Union
 
-from templify.core.workspace import Workspace
-from templify.core.utils.docx_intake import intake_docx
 from templify.core.schema.templify_schema_builder import TemplifySchemaBuilder
-from templify.core.schema.utils.schema_saver import SchemaSaver
 
 
-def _generate_schemas_core(
-    docx_path: Union[str, Path],
-    extract_dir: Optional[Union[str, Path]] = None,
-    expected_titles=None,
-    output_dir: Optional[Union[str, Path]] = None,
-) -> dict | Path:
+def build_schema(document_xml_path: str, extract_dir: str | None = None) -> dict:
     """
-    LOW-LEVEL CORE: expects path to word/document.xml (already unzipped).
-    Returns a schema dict (in-memory) or Path (if saved).
+    Build a Templify schema from a document.xml and (optionally) its extracted DOCX folder.
+
+    Parameters
+    ----------
+    document_xml_path : str
+        Path to the `document.xml` file.
+    extract_dir : str | None
+        Path to the extracted DOCX directory (unzipped). Required for some features.
+
+    Returns
+    -------
+    dict
+        The generated Templify schema.
     """
-    parser = TemplifySchemaBuilder(str(docx_path), str(extract_dir) if extract_dir else None)
-    schema = parser.run()
-
-    if output_dir:
-        saver = SchemaSaver(schema)
-        return saver.save_to_file(output_dir)
-
-    return schema
+    builder = TemplifySchemaBuilder(document_xml_path=document_xml_path, docx_extract_dir=extract_dir)
+    return builder.run()
 
 
-def generate_schemas_from_docx(
-    docx_file: Union[str, Path],
-    *,
-    ws: Optional[Workspace] = None,
-    expected_titles=None,
-    output_dir: Optional[Union[str, Path]] = None,
-) -> dict | Path:
+def main(argv: list[str] | None = None) -> None:
     """
-    PIPELINE WRAPPER: accepts a .docx, unzips into workspace, then calls the core.
+    CLI entrypoint for running schema extraction.
+
+    Example:
+        python -m templify.runner --document path/to/document.xml --extract path/to/unzipped --output out.json
     """
-    ws = ws or Workspace()
-    intake = intake_docx(docx_file, ws)  # IntakeResult dataclass
+    parser = argparse.ArgumentParser(description="Templify schema runner")
+    parser.add_argument("--document", "-d", required=True, help="Path to document.xml")
+    parser.add_argument("--extract", "-e", required=False, help="Path to extracted DOCX folder")
+    parser.add_argument("--output", "-o", required=False, help="Output JSON file (default: stdout)")
 
-    document_xml = intake.key_files.get("document_xml")
-    if document_xml is None:
-        raise RuntimeError("intake_docx did not produce a word/document.xml path")
+    args = parser.parse_args(argv)
 
-    return _generate_schemas_core(
-        docx_path=document_xml,
-        extract_dir=intake.unzip_dir,
-        expected_titles=expected_titles,
-        output_dir=output_dir,
-    )
+    schema = build_schema(args.document, args.extract)
 
-
-def generate_schemas_from_xml(
-    document_xml_path: Union[str, Path],
-    extract_dir: Optional[Union[str, Path]] = None,
-    expected_titles=None,
-    output_dir: Optional[Union[str, Path]] = None,
-) -> dict | Path:
-    """
-    Low-level entrypoint: parse WordprocessingML (word/document.xml) into a Templify schema.
-
-    Returns:
-        - dict if output_dir is None
-        - Path if output_dir is provided
-    """
-    parser = TemplifySchemaBuilder(str(document_xml_path), str(extract_dir) if extract_dir else None, expected_titles)
-    schema = parser.run()
-
-    if output_dir:
-        saver = SchemaSaver(schema)
-        return saver.save_to_file(output_dir)
-
-    return schema
+    if args.output:
+        out_path = Path(args.output)
+        out_path.write_text(json.dumps(schema, indent=2), encoding="utf-8")
+    else:
+        json.dump(schema, sys.stdout, indent=2)
 
 
-# Back-compat alias (old name)
-generate_schemas = generate_schemas_from_xml
+if __name__ == "__main__":
+    main()

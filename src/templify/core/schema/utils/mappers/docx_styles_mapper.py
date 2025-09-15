@@ -1,5 +1,3 @@
-# src/templify/core/config/docx_styles_mapper.py
-
 import os
 import glob
 import xml.etree.ElementTree as ET
@@ -35,11 +33,18 @@ class DocxStylesMapper:
         with open(path, "r", encoding="utf-8") as f:
             return ET.parse(f).getroot()
 
-    def collect_styles(self):
-        """Scan the DOCX folder for style-related parts and collect their info."""
-        if not self.docx_extract_dir:
-            return
+    def collect_styles(self, theme: dict[str, any] | None = None) -> dict:
+        """
+        Scan the DOCX folder for style-related parts and collect their info.
 
+        Returns:
+            dict with style categories (paragraphs, characters, tables, lists, etc.)
+            keyed by stable style IDs.
+        """
+        if not self.docx_extract_dir:
+            return {}
+
+        # Run parsers
         self._parse_paragraph_definitions()
         self._parse_character_definitions()
         self._parse_table_definitions()
@@ -47,6 +52,24 @@ class DocxStylesMapper:
         self._parse_headers_and_footers()
         self._parse_section_definitions()
         self._parse_doc_defaults()
+
+        # Post-process: assign stable IDs and resolve theme refs
+        styles_with_ids: dict = {}
+        for cat, style_map in self.styles.items():
+            styles_with_ids[cat] = {}
+            for style_name, attrs in style_map.items():
+                style_id = f"sty_{style_name.lower().replace(' ', '_')}"
+                # Ensure attrs is always a dict
+                if not isinstance(attrs, dict):
+                    attrs = {"definition": attrs}
+                resolved = self._resolve_theme_references(attrs, theme)
+                styles_with_ids[cat][style_id] = {
+                    "name": style_name,
+                    **resolved
+                }
+
+        self.styles = styles_with_ids
+        return self.styles
 
     # ------------------------
     # Internal parsing helpers
@@ -122,13 +145,17 @@ class DocxStylesMapper:
             root = self._open_xml(hf)
             if root is not None:
                 text_content = " ".join([t.text for t in root.findall(".//w:t", namespaces=self.nsmap) if t.text])
-                self.styles["headers"][os.path.basename(hf)] = text_content.strip()
+                self.styles["headers"][os.path.basename(hf)] = {
+                    "text": text_content.strip()
+                }
 
         for ff in footer_files:
             root = self._open_xml(ff)
             if root is not None:
                 text_content = " ".join([t.text for t in root.findall(".//w:t", namespaces=self.nsmap) if t.text])
-                self.styles["footers"][os.path.basename(ff)] = text_content.strip()
+                self.styles["footers"][os.path.basename(ff)] = {
+                    "text": text_content.strip()
+                }
 
     def _parse_section_definitions(self):
         # Look inside document.xml for <w:sectPr>
@@ -138,7 +165,9 @@ class DocxStylesMapper:
             return
 
         for i, sectPr in enumerate(root.findall(".//w:sectPr", namespaces=self.nsmap)):
-            self.styles["sections"][f"section{i}"] = ET.tostring(sectPr, encoding="unicode")
+            self.styles["sections"][f"section{i}"] = {
+                "definition": ET.tostring(sectPr, encoding="unicode")
+            }
 
     def _parse_doc_defaults(self):
         path = os.path.join(self.docx_extract_dir, "word", "styles.xml")
@@ -169,3 +198,21 @@ class DocxStylesMapper:
                 "name": lsd.get(f"{{{self.nsmap['w']}}}name"),
                 "props": {k: lsd.get(k) for k in lsd.keys()}
             })
+
+    def _resolve_theme_references(self, attrs: dict, theme: dict | None) -> dict:
+        """
+        Replace themeColor/themeFont references in attrs with actual values
+        from a DocxThemesMapper dict.
+        """
+        if not theme:
+            return attrs
+
+        resolved = {}
+        for k, v in attrs.items():
+            if k == "color" and v in theme.get("colors", {}):
+                resolved[k] = theme["colors"][v]
+            elif k == "font" and v in theme.get("fonts", {}):
+                resolved[k] = theme["fonts"][v]
+            else:
+                resolved[k] = v
+        return resolved
