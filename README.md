@@ -4,7 +4,7 @@ Templify is a Python SDK for parsing, analyzing, and restructuring Microsoft Wor
 
 🚀 Features
 Parse WordprocessingML (document.xml) into structured JSON.
-Generate titles_config.json and docx_config.json automatically.
+Generate titles_schema.json and docx_schema.json automatically.
 Save and organize artifacts in a workspace directory.
 Project-aware defaults:
 In Git repos → .templify/ (hidden, ignored by Git).
@@ -20,7 +20,7 @@ templify_workspace/               # or .templify/ if inside a Git repo
     │   ├── plaintext/            # extracted plaintext (optional)
     │   └── unzipped/             # exploded Word XML
     └── output/
-        ├── configs/              # titles_config.json, docx_config.json
+        ├── configs/              # titles_schema.json, docx_schema.json
         └── docx/                 # final generated DOCX
 
 ⚡ Quickstart
