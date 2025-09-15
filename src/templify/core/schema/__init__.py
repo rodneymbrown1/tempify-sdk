@@ -12,7 +12,7 @@ Exports:
 
 from .schema_generator import SchemaGenerator
 from .utils.schema_saver import SchemaSaver
-from .utils.docx_styles_mapper import DocxStylesMapper
+from .utils.mappers.docx_styles_mapper import DocxStylesMapper
 from .templify_schema_builder import TemplifySchemaBuilder
 
 __all__ = [

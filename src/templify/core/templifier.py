@@ -4,13 +4,13 @@ import re
 
 class Templifier:
     """
-    Applies a config (titles_config + docx_config) to new plaintext
+    Applies a config (titles_schema + docx_schema) to new plaintext
     to generate a styled DOCX document.
     """
 
-    def __init__(self, titles_config: dict, docx_config: dict):
-        self.titles_config = titles_config
-        self.docx_config = docx_config
+    def __init__(self, titles_schema: dict, docx_schema: dict):
+        self.titles_schema = titles_schema
+        self.docx_schema = docx_schema
 
     def build_docx(self, plaintext_lines: list[str], output_path: str):
         doc = Document()
@@ -32,7 +32,7 @@ class Templifier:
 
     def _build_style_map(self):
         mapping = {}
-        for group in self.docx_config.get("layout_groups", []):
+        for group in self.docx_schema.get("layout_groups", []):
             for section in group.get("section_types", []):
                 mapping[section["section_type"]] = {
                     "font": section.get("font", {}),
@@ -41,7 +41,7 @@ class Templifier:
         return mapping
 
     def _match_section(self, line: str) -> str | None:
-        for title in self.titles_config.get("titles", []):
+        for title in self.titles_schema.get("titles", []):
             pattern = title["title_detection"]["pattern"]
             flags = 0 if title["title_detection"]["case_sensitive"] else re.IGNORECASE
             if re.fullmatch(pattern, line, flags):

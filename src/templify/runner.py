@@ -1,6 +1,6 @@
 # src/templify/runner.py
 from pathlib import Path
-from typing import Optional, Union, Tuple
+from typing import Optional, Union
 
 from templify.core.workspace import Workspace
 from templify.core.utils.docx_intake import intake_docx
@@ -8,34 +8,33 @@ from templify.core.schema.templify_schema_builder import TemplifySchemaBuilder
 from templify.core.schema.utils.schema_saver import SchemaSaver
 
 
-def _generate_configs_core(
+def _generate_schemas_core(
     docx_path: Union[str, Path],
     extract_dir: Optional[Union[str, Path]] = None,
     expected_titles=None,
     output_dir: Optional[Union[str, Path]] = None,
-) -> Tuple[dict, dict] | Tuple[Path, Path]:
+) -> dict | Path:
     """
     LOW-LEVEL CORE: expects path to word/document.xml (already unzipped).
+    Returns a schema dict (in-memory) or Path (if saved).
     """
-    parser = TemplifySchemaBuilder(str(docx_path), str(extract_dir) if extract_dir else None, expected_titles)
-    parser.run()
+    parser = TemplifySchemaBuilder(str(docx_path), str(extract_dir) if extract_dir else None)
+    schema = parser.run()
 
     if output_dir:
-        exporter = SchemaSaver(parser.titles_config, parser.docx_config)
-        titles_path_str, main_path_str = exporter.save_to_files(str(output_dir))
-        # Return Path objects (clean, test-friendly API)
-        return Path(titles_path_str), Path(main_path_str)
+        saver = SchemaSaver(schema)
+        return saver.save_to_file(output_dir)
 
-    return parser.titles_config, parser.docx_config
+    return schema
 
 
-def generate_configs_from_docx(
+def generate_schemas_from_docx(
     docx_file: Union[str, Path],
     *,
     ws: Optional[Workspace] = None,
     expected_titles=None,
     output_dir: Optional[Union[str, Path]] = None,
-) -> Tuple[dict, dict] | Tuple[Path, Path]:
+) -> dict | Path:
     """
     PIPELINE WRAPPER: accepts a .docx, unzips into workspace, then calls the core.
     """
@@ -46,7 +45,7 @@ def generate_configs_from_docx(
     if document_xml is None:
         raise RuntimeError("intake_docx did not produce a word/document.xml path")
 
-    return _generate_configs_core(
+    return _generate_schemas_core(
         docx_path=document_xml,
         extract_dir=intake.unzip_dir,
         expected_titles=expected_titles,
@@ -54,36 +53,28 @@ def generate_configs_from_docx(
     )
 
 
-def generate_configs_from_xml(
+def generate_schemas_from_xml(
     document_xml_path: Union[str, Path],
     extract_dir: Optional[Union[str, Path]] = None,
     expected_titles=None,
     output_dir: Optional[Union[str, Path]] = None,
-) -> Tuple[dict, dict] | Tuple[Path, Path]:
+) -> dict | Path:
     """
-    Low-level entrypoint: parse WordprocessingML (word/document.xml) into Templify configs.
-
-    Args:
-        document_xml_path: Path to word/document.xml (already unzipped).
-        extract_dir: Root of the unzipped .docx (needed for styles/numbering/etc.).
-        expected_titles: Optional list/dict of titles to validate/guide parsing.
-        output_dir: If provided, writes JSON files and returns their Paths;
-                    otherwise returns config dicts.
+    Low-level entrypoint: parse WordprocessingML (word/document.xml) into a Templify schema.
 
     Returns:
-        If output_dir is None -> (titles_config: dict, docx_config: dict)
-        Else                  -> (titles_path: Path, main_path: Path)
+        - dict if output_dir is None
+        - Path if output_dir is provided
     """
     parser = TemplifySchemaBuilder(str(document_xml_path), str(extract_dir) if extract_dir else None, expected_titles)
-    parser.run()
+    schema = parser.run()
 
     if output_dir:
-        exporter = SchemaSaver(parser.titles_config, parser.docx_config)
-        titles_path_str, main_path_str = exporter.save_to_files(str(output_dir))
-        return Path(titles_path_str), Path(main_path_str)
+        saver = SchemaSaver(schema)
+        return saver.save_to_file(output_dir)
 
-    return parser.titles_config, parser.docx_config
+    return schema
 
 
 # Back-compat alias (old name)
-generate_configs = generate_configs_from_xml
+generate_schemas = generate_schemas_from_xml
