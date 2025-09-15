@@ -9,7 +9,7 @@ class DocxStylesMapper:
     """
     Collects style definitions from an unzipped DOCX package and organizes them
     into a Python dictionary. This provides access to high-level features of
-    Word styles (paragraphs, tables, lists, headers, footers).
+    Word styles (paragraphs, tables, lists, headers, footers, character, sections, defaults).
     """
 
     def __init__(self, document_xml_path, docx_extract_dir=None):
@@ -18,10 +18,14 @@ class DocxStylesMapper:
         self.nsmap = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
         self.styles = {
             "paragraphs": {},
+            "characters": {},
             "tables": {},
             "lists": {},
             "headers": {},
             "footers": {},
+            "sections": {},
+            "defaults": {},
+            "latent": {},
         }
 
     def _open_xml(self, path):
@@ -37,9 +41,12 @@ class DocxStylesMapper:
             return
 
         self._parse_paragraph_definitions()
+        self._parse_character_definitions()
         self._parse_table_definitions()
         self._parse_list_definitions()
         self._parse_headers_and_footers()
+        self._parse_section_definitions()
+        self._parse_doc_defaults()
 
     # ------------------------
     # Internal parsing helpers
@@ -56,6 +63,22 @@ class DocxStylesMapper:
             style_id = style.get(f"{{{self.nsmap['w']}}}styleId")
             name = style.find("w:name", namespaces=self.nsmap)
             self.styles["paragraphs"][style_id] = {
+                "label": name.get(f"{{{self.nsmap['w']}}}val") if name is not None else None,
+                "definition": ET.tostring(style, encoding="unicode"),
+            }
+
+    def _parse_character_definitions(self):
+        path = os.path.join(self.docx_extract_dir, "word", "styles.xml")
+        root = self._open_xml(path)
+        if root is None:
+            return
+
+        for style in root.findall("w:style", namespaces=self.nsmap):
+            if style.get(f"{{{self.nsmap['w']}}}type") != "character":
+                continue
+            style_id = style.get(f"{{{self.nsmap['w']}}}styleId")
+            name = style.find("w:name", namespaces=self.nsmap)
+            self.styles["characters"][style_id] = {
                 "label": name.get(f"{{{self.nsmap['w']}}}val") if name is not None else None,
                 "definition": ET.tostring(style, encoding="unicode"),
             }
@@ -106,3 +129,43 @@ class DocxStylesMapper:
             if root is not None:
                 text_content = " ".join([t.text for t in root.findall(".//w:t", namespaces=self.nsmap) if t.text])
                 self.styles["footers"][os.path.basename(ff)] = text_content.strip()
+
+    def _parse_section_definitions(self):
+        # Look inside document.xml for <w:sectPr>
+        path = os.path.join(self.docx_extract_dir, "word", "document.xml")
+        root = self._open_xml(path)
+        if root is None:
+            return
+
+        for i, sectPr in enumerate(root.findall(".//w:sectPr", namespaces=self.nsmap)):
+            self.styles["sections"][f"section{i}"] = ET.tostring(sectPr, encoding="unicode")
+
+    def _parse_doc_defaults(self):
+        path = os.path.join(self.docx_extract_dir, "word", "styles.xml")
+        root = self._open_xml(path)
+        if root is None:
+            return
+
+        doc_defaults = root.find("w:docDefaults", namespaces=self.nsmap)
+        if doc_defaults is not None:
+            self.styles["defaults"]["definition"] = ET.tostring(doc_defaults, encoding="unicode")
+
+    def _parse_latent_styles(self):
+        path = os.path.join(self.docx_extract_dir, "word", "styles.xml")
+        root = self._open_xml(path)
+        if root is None:
+            return
+
+        latent = root.find("w:latentStyles", namespaces=self.nsmap)
+        if latent is None:
+            return
+
+        self.styles["latent"] = {
+            "defaults": {k: latent.get(k) for k in latent.keys()},
+            "exceptions": []
+        }
+        for lsd in latent.findall("w:lsdException", namespaces=self.nsmap):
+            self.styles["latent"]["exceptions"].append({
+                "name": lsd.get(f"{{{self.nsmap['w']}}}name"),
+                "props": {k: lsd.get(k) for k in lsd.keys()}
+            })
