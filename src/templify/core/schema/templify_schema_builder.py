@@ -49,7 +49,7 @@ class TemplifySchemaBuilder:
     # ------------------------------------------------------------------
     # Extractors
     # ------------------------------------------------------------------
-    def extract_paragraphs(self) -> List[Dict[str, Any]]:
+    def generate_pattern_descriptors(self) -> List[Dict[str, Any]]:
         """Detect all paragraphs and build pattern descriptors with taxonomy + styles."""
         # preload styles + defaults
         styles = self.extract_styles()
@@ -218,7 +218,7 @@ class TemplifySchemaBuilder:
     # Pipeline
     # ------------------------------------------------------------------
     def run(self) -> Dict[str, Any]:
-        pattern_descriptors = self.extract_paragraphs()
+        pattern_descriptors = self.generate_pattern_descriptors()
         global_defaults = self.extract_global_defaults()
 
         styles = self.extract_styles()
