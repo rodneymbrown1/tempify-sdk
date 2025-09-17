@@ -15,6 +15,7 @@ from templify.core.schema.utils.mappers.docx_tables_mapper import DocxTablesMapp
 from templify.core.schema.utils.mappers.docx_numbering_mapper import DocxNumberingMapper
 from templify.core.schema.utils.mappers.docx_headers_footers_mapper import DocxHeadersFootersMapper
 from templify.core.schema.utils.mappers.docx_themes_mapper import DocxThemesMapper
+from templify.core.schema.utils.mappers.docx_text_mapper import DocxTextMapper
 
 
 class TemplifySchemaBuilder:
@@ -48,35 +49,50 @@ class TemplifySchemaBuilder:
     # ------------------------------------------------------------------
     # Extractors
     # ------------------------------------------------------------------
-    def extract_headings(self) -> List[Dict[str, Any]]:
-        """Detect headings and build Section tree + pattern descriptors."""
-        lines: list[str] = []
-        para_ids: list[str] = []
+    def extract_paragraphs(self) -> List[Dict[str, Any]]:
+        """Detect all paragraphs and build pattern descriptors with taxonomy + styles."""
+        # preload styles + defaults
+        styles = self.extract_styles()
+        defaults = self.extract_global_defaults()
+        text_mapper = DocxTextMapper(self.nsmap, styles, defaults)
 
-        for p in self.body.findall("w:p", namespaces=self.nsmap):
-            texts = [t.text for t in p.findall(".//w:t", namespaces=self.nsmap) if t.text]
-            if texts:
-                lines.append(" ".join(texts).strip())
-                para_id = p.attrib.get("{http://schemas.microsoft.com/office/word/2010/wordml}paraId")
-                para_ids.append(para_id or f"p_{len(para_ids)+1}")
-
-        detections = detect_headings(lines)
+        # extract paragraphs (text + style + id)
+        paragraphs_info = text_mapper.extract_paragraphs(self.body)
         descriptors = []
-        for det in detections:
-            text = det.clean_text or lines[det.line_idx]
-            desc = route_match("heading", text)
-            desc.features.update({
-                "level": det.level,
-                "numbering": det.numbering,
-                "clean_text": det.clean_text,
-            })
-            desc.paragraph_id = para_ids[det.line_idx]
+        lines = []
+        para_ids = []
+
+        for i, pinfo in enumerate(paragraphs_info):
+            text = (pinfo["text"] or "").strip()
+            if not text:
+                continue
+
+            para_id = pinfo["paragraph_id"] or f"p_{i+1}"
+
+            desc = route_match(
+                text = text,
+                features=pinfo["style"],  
+                domain=None,
+            )  
+
+            # attach metadata
+            desc.paragraph_id = para_id
+            desc.features.update({"clean_text": text})
+            desc.style = pinfo["style"]
+
             descriptors.append(desc)
+            lines.append(text)
+            para_ids.append(para_id)
 
+        # save descriptors into builder
         self.pattern_descriptors = [d.to_dict() for d in descriptors]
-        self.sections = build_sections_from_headings(detections, descriptors)
-        return self.pattern_descriptors
 
+        # 🔹 still build section tree from heading-like descriptors
+        detections = detect_headings(lines)
+        self.sections = build_sections_from_headings(detections, descriptors)
+
+        return self.pattern_descriptors
+    
     def extract_global_defaults(self) -> Dict[str, Any]:
         """Baseline defaults (could be enhanced to parse document.xml)."""
         self.global_defaults = {
@@ -202,7 +218,7 @@ class TemplifySchemaBuilder:
     # Pipeline
     # ------------------------------------------------------------------
     def run(self) -> Dict[str, Any]:
-        pattern_descriptors = self.extract_headings()
+        pattern_descriptors = self.extract_paragraphs()
         global_defaults = self.extract_global_defaults()
 
         styles = self.extract_styles()
@@ -222,17 +238,17 @@ class TemplifySchemaBuilder:
             sections=self.sections,
             layout_groups=self.layout_groups,
             global_defaults=global_defaults,
-            styles=styles,
-            tables=tables,
-            numbering=numbering,
-            headers=headers,
-            footers=footers,
-            theme=theme,
-            hyperlinks=hyperlinks,
-            images=images,
-            bookmarks=bookmarks,
-            inline_formatting=inline_formatting,
-            metadata=metadata,
+            # styles=styles,
+            # tables=tables,
+            # numbering=numbering,
+            # headers=headers,
+            # footers=footers,
+            # theme=theme,
+            # hyperlinks=hyperlinks,
+            # images=images,
+            # bookmarks=bookmarks,
+            # inline_formatting=inline_formatting,
+            # metadata=metadata,
             pattern_descriptors=pattern_descriptors,
         )
         return generator.generate()

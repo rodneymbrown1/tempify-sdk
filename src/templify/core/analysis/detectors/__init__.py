@@ -1,4 +1,3 @@
-# src/templify/core/analysis/detectors/__init__.py
 """
 Unified public API for the detectors package.
 
@@ -6,10 +5,10 @@ Import from here in tests and calling code, e.g.:
 
     from templify.core.analysis.detectors import (
         ExactMatcher, find_exact_matches,
-        build_regexes_from_phrases, regex_search_lines,
+        RegexDetection, normalize_to_regex, regex_fallback, regex_match,
         HeadingDetection, classify_lines,
         SemanticClassifier, semantic_classify,
-        RegexDetection, HeuristicPrediction, SemanticPrediction,
+        HeuristicPrediction, SemanticPrediction,
         coerce_to_lines,
     )
 """
@@ -21,9 +20,10 @@ from .exact_matcher import (
 )
 
 from .regex_maker import (
-    build_regexes_from_phrases,
-    regex_search_lines,
     RegexDetection,
+    normalize_to_regex,
+    regex_fallback,
+    match as regex_match,
 )
 
 from .heuristics.heading_detector import (
@@ -48,9 +48,10 @@ __all__ = [
     "ExactDetection",
 
     # Regex maker
-    "build_regexes_from_phrases",
-    "regex_search_lines",
     "RegexDetection",
+    "normalize_to_regex",
+    "regex_fallback",
+    "regex_match",
 
     # Heuristic classifier
     "HeadingDetection",

@@ -9,7 +9,7 @@ from templify.core.analysis.forms.callouts import CalloutForm
 
 # ---------- Public model ----------
 @dataclass(frozen=True)
-class DetectedCallout:
+class CalloutDetection:
     line_idx: int
     score: float
     method: str = "heuristic"
@@ -75,15 +75,15 @@ class CalloutHeuristicDetector:
 
     def detect(
         self, source: Union[Sequence[str], PlaintextContext], threshold: float = 0.5
-    ) -> List[DetectedCallout]:
+    ) -> List[CalloutDetection]:
         lines = coerce_to_lines(source)
-        results: List[DetectedCallout] = []
+        results: List[CalloutDetection] = []
 
         for i, s in enumerate(lines):
             sc = score_callout_line(s)
             if sc >= threshold:
                 results.append(
-                    DetectedCallout(
+                    CalloutDetection(
                         line_idx=i,
                         score=sc,
                         method="heuristic",

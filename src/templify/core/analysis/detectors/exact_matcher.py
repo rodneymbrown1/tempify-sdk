@@ -68,8 +68,6 @@ class ExactMatcher:
         titles = _extract_titles(domain_pack)
         return find_exact_matches(context_or_lines, titles, case_insensitive=self.case_insensitive)
     
-    # src/templify/core/analysis/detectors/exact_matcher.py
-
 def match(text, **kwargs):
     """
     Standardized entrypoint for the router.

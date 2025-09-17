@@ -17,30 +17,121 @@ MATCHERS = {
     "semantic": semantic_classifier.match,
 }
 
+import logging
+logger = logging.getLogger(__name__)
 
-def route_match(structure: str, text: str, features=None, domain=None):
+def route_match(
+    text: str,
+    *,
+    structure: str | None = None,
+    features=None,
+    domain=None,
+    titles_config=None,
+    signal: str | None = None,
+):
     """
-    Run detectors in priority order and normalize outputs into PatternDescriptor.
-    Ensures type is always an Axis-1 code (H-*, L-*, P-*, T-*, C-*).
+    Run detectors in priority order.
+    Two flows:
+      - If a signal is provided, coerce directly with that signal.
+      - Otherwise, auto-detect: exact → heuristic → regex → semantic → fallback.
     """
+    logger.debug(f"[ROUTE_MATCH] text='{text[:150]}...' structure={structure} signal={signal}")
+
+    # --- Flow 1: Explicit signal passed in ---
+    if signal:
+        logger.debug(f"→ using provided signal {signal}")
+        return coerce_to_descriptor(
+            raw=text,
+            signal=signal,
+            text=text,
+            features=features,
+            domain=domain,
+        )
+
+    # --- Flow 2: Auto-detect ---
     # 1. Exact
-    if m := MATCHERS["exact"](text, domain=domain):
-        return coerce_to_descriptor(m, signal="EXACT")
+    if titles_config:
+        m = MATCHERS["exact"](text, candidates=titles_config, domain=domain)
+        if m:
+            logger.debug("→ exact match hit")
+            return coerce_to_descriptor(
+                raw=m,
+                signal="EXACT",
+                text=text,
+                features=features,
+                domain=domain,
+            )
 
-    # 2. Regex
-    if m := MATCHERS["regex"](text, domain=domain):
-        return coerce_to_descriptor(m, signal="REGEX")
+    # 2. Heuristic
+    if structure and structure in MATCHERS["heuristic"]:
+        m = MATCHERS["heuristic"][structure](text, features=features, domain=domain)
+        if m:
+            logger.debug(f"→ heuristic match ({structure}) hit")
+            return coerce_to_descriptor(
+                raw=m,
+                signal=f"HEURISTIC-{structure.upper()}",
+                text=text,
+                features=features,
+                domain=domain,
+            )
+    else:
+        logger.debug("→ no structure provided, trying all heuristic matchers")
+        HEURISTIC_ORDER = ["heading", "list", "paragraph", "table", "callout"]
 
-    # 3. Heuristic by structure
-    if structure in MATCHERS["heuristic"]:
-        if m := MATCHERS["heuristic"][structure](text, features=features, domain=domain):
-            return coerce_to_descriptor(m, signal="HEURISTIC")
+        for key in HEURISTIC_ORDER:
+            detector = MATCHERS["heuristic"][key]
+            m = detector(text, features=features, domain=domain)
+            if m:
+                logger.debug(f"→ heuristic match ({key}) hit")
+                return coerce_to_descriptor(
+                    raw=m,
+                    signal=f"HEURISTIC-{key.upper()}",
+                    text=text,
+                    features=features,
+                    domain=domain,
+        )
+            
+        logger.debug("→ no heuristic matchers hit, trying regex")
+        m = MATCHERS["regex"](text, domain=domain)
+        logger.debug(f"→ regex result: {m}")
+        if m:
+            logger.debug("→ regex match hit")
+            return coerce_to_descriptor(
+                raw=m,
+                signal="REGEX",
+                text=text,
+                features=features,
+                domain=domain,
+            )
+                
 
-    # 4. Semantic fallback (usually maps to P-BODY or H-LONG)
-    if m := MATCHERS["semantic"](text, features=features, domain=domain):
-        return coerce_to_descriptor(m, signal="SEMANTIC")
 
-    # 5. Hard fallback
+    # 3. Regex
+    m = MATCHERS["regex"](text, domain=domain)
+    if m:
+        logger.debug("→ regex match hit")
+        return coerce_to_descriptor(
+            raw=m,
+            signal="REGEX",
+            text=text,
+            features=features,
+            domain=domain,
+        )
+
+    # 4. Semantic
+    m = MATCHERS["semantic"](text, features=features, domain=domain)
+    if m:
+        logger.debug("→ semantic match hit")
+        return coerce_to_descriptor(
+            raw=m,
+            signal="SEMANTIC",
+            text=text,
+            features=features,
+            domain=domain,
+        )
+
+    # 5. Fallback
+    logger.debug("→ fallback UNKNOWN")
     return PatternDescriptor(
         type="UNKNOWN",
         signals=["FALLBACK"],

@@ -6,6 +6,8 @@ from typing import Callable, Iterable, List, Dict, Any, Sequence, Union, Optiona
 from templify.core.analysis.features import extract_line_features
 from templify.core.analysis.utils.plaintext_context import PlaintextContext
 from templify.core.analysis.detectors.utils import coerce_to_lines, normalize_line
+import logging
+logger = logging.getLogger(__name__)
 
 # ---------- Public model ----------
 @dataclass(frozen=True)
@@ -53,6 +55,7 @@ _COLON_RE      = re.compile(r"[:]\s*$")
 _BULLET_RE     = re.compile(r"^\s*([\-–—•▪◦●·])\s+")
 _TOC_DOTS_RE   = re.compile(r"[.]{2,}\s*\d+$")
 _TRAILING_DOT_RE = re.compile(r"[ \t\.]+$")
+_TITLE_CASE_WITH_SYMBOLS_RE = re.compile(r"^[A-Z][A-Za-z&]+(?:\s+[A-Z][A-Za-z&]+){0,6}$")
 
 def strip_leading_numbering(s: str) -> str:
     return _NUM_HEAD_RE.sub("", s).strip()
@@ -92,7 +95,9 @@ BASE_CLUES: List[HeadingClue] = [
     # Negative
     HeadingClue("bullet_or_dash", -0.30, _re_pred(_BULLET_RE)),
     HeadingClue("toc_dots",       -0.20, _re_pred(_TOC_DOTS_RE)),
-]
+    HeadingClue("title_case_symbols", 0.39, _re_pred(_TITLE_CASE_WITH_SYMBOLS_RE)),
+
+    ]
 
 SYNERGY_RULES: List[tuple[set[str], float]] = [
     ({"num_heading", "title_after_num"}, 0.50),
@@ -190,5 +195,12 @@ def match(lines, features=None, domain=None, threshold: float = 0.55, **kwargs):
     """
     Standardized entrypoint for the router.
     Delegates to the heuristic heading detector.
+
     """
+    if isinstance(lines, str):
+        lines = [lines]
+    logger.debug(f"HeadingDetector.match called with threshold={threshold}")
+    logger.debug(f"HeadingDetector.match... Input lines: {lines}")
+    d = detect_headings(lines, threshold=threshold)
+    logger.debug(f"HeadingDetector.match... Detected {d}")
     return detect_headings(lines, threshold=threshold)

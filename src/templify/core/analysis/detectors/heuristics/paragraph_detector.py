@@ -6,7 +6,7 @@ from typing import List, Sequence, Union, Dict, Any
 from templify.core.analysis.features import extract_line_features
 from templify.core.analysis.utils.plaintext_context import PlaintextContext
 from templify.core.analysis.detectors.utils import coerce_to_lines, normalize_line
-
+from templify.core.analysis.forms.paragraphs import classify_paragraph_line, ParagraphForm
 
 @dataclass(frozen=True)
 class ParagraphDetection:
@@ -123,10 +123,19 @@ def detect_paragraphs(
 
     return preds
 
-
-def match(lines, features=None, domain=None, threshold: float = 0.55, **kwargs):
+def match(line: str, features=None, domain=None, threshold: float = 0.55, **kwargs) -> List[ParagraphDetection]:
     """
-    Standardized entrypoint for the router.
-    Delegates to the heuristic paragraph detector.
+    Heuristic paragraph matcher for a single line of text.
+    Returns a list with one ParagraphDetection if the line looks like a paragraph,
+    otherwise an empty list.
     """
-    return detect_paragraphs(lines, threshold=threshold)
+    sc = score_paragraph(line, features=features)
+    if sc >= threshold:
+        para_form: ParagraphForm = classify_paragraph_line(line, features=features)
+        return [ParagraphDetection(
+            line_idx=0,
+            label=para_form.value,   # e.g. "P-BODY", "P-LEAD", "P-SUMMARY"
+            score=sc,
+            method="heuristic"
+        )]
+    return []
