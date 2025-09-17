@@ -107,7 +107,7 @@ def regex_fallback(
                 title=text,
                 score=score,
                 pattern=pattern,
-                label=f"REGEX-{classification}",   # ✅ fixed
+                label=f"REGEX-{classification}",
             )
         )
 
@@ -135,9 +135,18 @@ def classify_regex(pattern: str, text: str) -> str:
         return "H-COLON"
     return "UNKNOWN"
 
-def match(lines, domain=None, **kwargs):
+def match(lines, domain=None, **kwargs) -> RegexDetection | None:
     logger.debug("→ using regex maker fallback")
     if isinstance(lines, str):
         lines = [lines]
+
     logger.debug(f"→ input lines: {lines}")
-    return regex_fallback(lines)
+    hits = regex_fallback(lines)
+
+    if not hits:
+        return None
+
+    # pick the highest-scoring detection
+    best = max(hits, key=lambda r: r.score)
+    logger.debug(f"→ regex best match: {best}")
+    return best

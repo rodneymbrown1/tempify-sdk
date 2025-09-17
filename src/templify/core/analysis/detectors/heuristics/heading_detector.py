@@ -2,10 +2,10 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, asdict, is_dataclass
 from typing import Callable, Iterable, List, Dict, Any, Sequence, Union, Optional
-
 from templify.core.analysis.features import extract_line_features
 from templify.core.analysis.utils.plaintext_context import PlaintextContext
 from templify.core.analysis.detectors.utils import coerce_to_lines, normalize_line
+from templify.core.analysis.forms.headings import HeadingForm, guess_heading_form
 import logging
 logger = logging.getLogger(__name__)
 
@@ -19,6 +19,7 @@ class HeadingDetection:
     level: Optional[int] = None       # hierarchy depth (1=top-level)
     numbering: Optional[str] = None   # "2.", "2.1", "III", etc.
     clean_text: Optional[str] = None  # stripped version
+    form: Optional["HeadingForm"] = None
 
 # ---------- Infrastructure ----------
 Predicate = Callable[[str], bool]
@@ -190,6 +191,41 @@ def _extract_numbering_and_level(text: str) -> tuple[Optional[str], Optional[int
 
     # No explicit numbering → infer level by heuristics (font/size/style)
     return None, None, strip_trailing_dot(s)
+
+def detect_headings(
+    source: Union[Sequence[str], PlaintextContext],
+    threshold: float = 0.55,
+    label: str = "heading",
+    clues: Iterable[HeadingClue] = BASE_CLUES,
+) -> List[HeadingDetection]:
+    lines = coerce_to_lines(source)
+    preds: List[HeadingDetection] = []
+
+    for i, s in enumerate(lines):
+        feats = None
+        if extract_line_features:
+            try:
+                feats = extract_line_features(s)
+            except Exception:
+                feats = None
+
+        sc = score_heading(s, feats, clues=clues)
+        if sc >= threshold:
+            numbering, level, clean = _extract_numbering_and_level(s)
+            form = guess_heading_form(s)  # <— classify subtype
+
+            preds.append(
+                HeadingDetection(
+                    line_idx=i,
+                    label=form.value if form else label,  # use H-* if found
+                    score=sc,
+                    numbering=numbering,
+                    level=level,
+                    clean_text=clean,
+                    form=form,
+                )
+            )
+    return preds
 
 def match(lines, features=None, domain=None, threshold: float = 0.55, **kwargs):
     """
