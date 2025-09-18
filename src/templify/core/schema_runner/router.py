@@ -1,3 +1,4 @@
+# src/templify/core/schema_runner/router.py
 from .writers import (
     ParagraphWriter, ListWriter, TableWriter, HeaderFooterWriter, ImageWriter, ThemeWriter
 )
@@ -14,7 +15,8 @@ class SchemaRouter:
         }
 
     def dispatch(self, descriptor, style):
-        t = descriptor["type"]
+        t = descriptor.get("type", "P")
+
         if t.startswith("H"):
             return self.writers["H"].write(descriptor, style)
         if t.startswith("P"):
@@ -25,3 +27,6 @@ class SchemaRouter:
             return self.writers["T"].write(descriptor, style)
         if t.startswith("IMG"):
             return self.writers["IMG"].write(descriptor, style)
+
+        # --- Fallback ---
+        return self.writers["P"].write(descriptor, style)

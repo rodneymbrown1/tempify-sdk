@@ -35,6 +35,7 @@ class SchemaGenerator:
         inline_formatting: List[Dict[str, Any]] | None = None,
         metadata: Dict[str, Any] | None = None,
         pattern_descriptors: List[Dict[str, Any]] | None = None,
+        source_docx: str | None = None, 
     ):
         self.sections = sections
         self.layout_groups = layout_groups
@@ -51,6 +52,7 @@ class SchemaGenerator:
         self.inline_formatting = inline_formatting or []
         self.metadata = metadata or {}
         self.pattern_descriptors = pattern_descriptors or []
+        self.source_docx = source_docx
 
     def generate(self) -> Dict[str, Any]:
         return {
@@ -69,4 +71,5 @@ class SchemaGenerator:
             # "inline_formatting": self.inline_formatting,
             # "metadata": self.metadata,
             "pattern_descriptors": self.pattern_descriptors,
+            "source_docx": self.source_docx, 
         }

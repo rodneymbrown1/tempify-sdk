@@ -29,6 +29,6 @@ except PackageNotFoundError:
 # ----------------------------------------------------------------------
 # Public imports
 # ----------------------------------------------------------------------
-from templify.core.schema.templify_schema_builder import TemplifySchemaBuilder
+from templify.core.schema.build_schema import TemplifySchemaBuilder
 from templify.core.schema.schema_generator import SchemaGenerator
 from templify.runner import build_schema

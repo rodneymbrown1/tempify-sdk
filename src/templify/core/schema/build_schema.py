@@ -26,7 +26,7 @@ class TemplifySchemaBuilder:
     to SchemaGenerator.
     """
 
-    def __init__(self, document_xml_path: str, docx_extract_dir: str | None = None):
+    def __init__(self, document_xml_path: str, docx_extract_dir: str | None = None, source_docx: str | None = None):
         if not os.path.exists(document_xml_path):
             raise FileNotFoundError(f"document.xml not found: {document_xml_path}")
 
@@ -39,7 +39,7 @@ class TemplifySchemaBuilder:
 
         self.document_xml_path = document_xml_path
         self.docx_extract_dir = docx_extract_dir
-
+        self.source_docx = source_docx
         # containers for extraction results
         self.sections: List[Section] = []
         self.layout_groups: List[Dict[str, Any]] = []
@@ -234,7 +234,7 @@ class TemplifySchemaBuilder:
         metadata = self.extract_metadata()
 
         generator = SchemaGenerator(
-            # sections=self.sections,
+            sections=self.sections,
             layout_groups=self.layout_groups,
             global_defaults=global_defaults,
             # styles=styles,
@@ -249,5 +249,6 @@ class TemplifySchemaBuilder:
             # inline_formatting=inline_formatting,
             # metadata=metadata,
             pattern_descriptors=pattern_descriptors,
+            source_docx=self.source_docx 
         )
         return generator.generate()
