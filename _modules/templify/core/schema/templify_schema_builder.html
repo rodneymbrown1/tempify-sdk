@@ -175,8 +175,136 @@
             <span class="s2">&quot;font&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Arial&quot;</span><span class="p">,</span> <span class="s2">&quot;size&quot;</span><span class="p">:</span> <span class="mi">12</span><span class="p">},</span>
             <span class="s2">&quot;paragraph&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;alignment&quot;</span><span class="p">:</span> <span class="s2">&quot;left&quot;</span><span class="p">},</span>
         <span class="p">}</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_defaults</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_defaults</span></div>
 
+
+<div class="viewcode-block" id="TemplifySchemaBuilder.extract_styles">
+<a class="viewcode-back" href="../../../../templify.html#templify.TemplifySchemaBuilder.extract_styles">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">extract_styles</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">mapper</span> <span class="o">=</span> <span class="n">DocxStylesMapper</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">document_xml_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">docx_extract_dir</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">mapper</span><span class="o">.</span><span class="n">collect_styles</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="TemplifySchemaBuilder.extract_sections">
+<a class="viewcode-back" href="../../../../templify.html#templify.TemplifySchemaBuilder.extract_sections">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">extract_sections</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="n">mapper</span> <span class="o">=</span> <span class="n">DocxSectionsMapper</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">document_xml_path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">mapper</span><span class="o">.</span><span class="n">collect_sections</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="TemplifySchemaBuilder.extract_tables">
+<a class="viewcode-back" href="../../../../templify.html#templify.TemplifySchemaBuilder.extract_tables">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">extract_tables</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="n">mapper</span> <span class="o">=</span> <span class="n">DocxTablesMapper</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">document_xml_path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">mapper</span><span class="o">.</span><span class="n">collect_tables</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="TemplifySchemaBuilder.extract_numbering">
+<a class="viewcode-back" href="../../../../templify.html#templify.TemplifySchemaBuilder.extract_numbering">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">extract_numbering</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">docx_extract_dir</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{}</span>
+        <span class="n">numbering_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">docx_extract_dir</span><span class="p">,</span> <span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;numbering.xml&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">numbering_path</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">DocxNumberingMapper</span><span class="p">(</span><span class="n">numbering_path</span><span class="p">)</span><span class="o">.</span><span class="n">collect_numbering</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">{}</span></div>
+
+
+<div class="viewcode-block" id="TemplifySchemaBuilder.extract_headers_footers">
+<a class="viewcode-back" href="../../../../templify.html#templify.TemplifySchemaBuilder.extract_headers_footers">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">extract_headers_footers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="nb">list</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">docx_extract_dir</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="n">mapper</span> <span class="o">=</span> <span class="n">DocxHeadersFootersMapper</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">docx_extract_dir</span><span class="p">)</span>
+        <span class="n">hf</span> <span class="o">=</span> <span class="n">mapper</span><span class="o">.</span><span class="n">collect_headers_footers</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">hf</span><span class="p">[</span><span class="s2">&quot;headers&quot;</span><span class="p">],</span> <span class="n">hf</span><span class="p">[</span><span class="s2">&quot;footers&quot;</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="TemplifySchemaBuilder.extract_theme">
+<a class="viewcode-back" href="../../../../templify.html#templify.TemplifySchemaBuilder.extract_theme">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">extract_theme</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">docx_extract_dir</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{}</span>
+        <span class="n">theme_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">docx_extract_dir</span><span class="p">,</span> <span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;theme&quot;</span><span class="p">,</span> <span class="s2">&quot;theme1.xml&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">theme_path</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">DocxThemesMapper</span><span class="p">(</span><span class="n">theme_path</span><span class="p">)</span><span class="o">.</span><span class="n">collect_theme</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">{}</span></div>
+
+
+<div class="viewcode-block" id="TemplifySchemaBuilder.extract_hyperlinks">
+<a class="viewcode-back" href="../../../../templify.html#templify.TemplifySchemaBuilder.extract_hyperlinks">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">extract_hyperlinks</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">docx_extract_dir</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+        <span class="n">rels_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">docx_extract_dir</span><span class="p">,</span> <span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;_rels&quot;</span><span class="p">,</span> <span class="s2">&quot;document.xml.rels&quot;</span><span class="p">)</span>
+        <span class="n">rels_map</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">rels_path</span><span class="p">):</span>
+            <span class="n">rels_tree</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">rels_path</span><span class="p">)</span><span class="o">.</span><span class="n">getroot</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">rel</span> <span class="ow">in</span> <span class="n">rels_tree</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;.//{http://schemas.openxmlformats.org/package/2006/relationships}Relationship&quot;</span><span class="p">):</span>
+                <span class="n">r_id</span> <span class="o">=</span> <span class="n">rel</span><span class="o">.</span><span class="n">attrib</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Id&quot;</span><span class="p">)</span>
+                <span class="n">target</span> <span class="o">=</span> <span class="n">rel</span><span class="o">.</span><span class="n">attrib</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Target&quot;</span><span class="p">)</span>
+                <span class="n">rels_map</span><span class="p">[</span><span class="n">r_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">target</span>
+        <span class="n">links</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">link</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;.//w:hyperlink&quot;</span><span class="p">,</span> <span class="n">namespaces</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nsmap</span><span class="p">):</span>
+            <span class="n">r_id</span> <span class="o">=</span> <span class="n">link</span><span class="o">.</span><span class="n">attrib</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id&quot;</span><span class="p">)</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">text</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">link</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;.//w:t&quot;</span><span class="p">,</span> <span class="n">namespaces</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nsmap</span><span class="p">)</span> <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+            <span class="n">links</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="n">text</span><span class="p">,</span> <span class="s2">&quot;target&quot;</span><span class="p">:</span> <span class="n">rels_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">r_id</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)})</span>
+        <span class="k">return</span> <span class="n">links</span></div>
+
+
+<div class="viewcode-block" id="TemplifySchemaBuilder.extract_images">
+<a class="viewcode-back" href="../../../../templify.html#templify.TemplifySchemaBuilder.extract_images">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">extract_images</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">docx_extract_dir</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+        <span class="n">rels_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">docx_extract_dir</span><span class="p">,</span> <span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;_rels&quot;</span><span class="p">,</span> <span class="s2">&quot;document.xml.rels&quot;</span><span class="p">)</span>
+        <span class="n">rels_map</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">rels_path</span><span class="p">):</span>
+            <span class="n">rels_tree</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">rels_path</span><span class="p">)</span><span class="o">.</span><span class="n">getroot</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">rel</span> <span class="ow">in</span> <span class="n">rels_tree</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;.//{http://schemas.openxmlformats.org/package/2006/relationships}Relationship&quot;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="s2">&quot;image&quot;</span> <span class="ow">in</span> <span class="n">rel</span><span class="o">.</span><span class="n">attrib</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Target&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
+                    <span class="n">rels_map</span><span class="p">[</span><span class="n">rel</span><span class="o">.</span><span class="n">attrib</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Id&quot;</span><span class="p">)]</span> <span class="o">=</span> <span class="n">rel</span><span class="o">.</span><span class="n">attrib</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Target&quot;</span><span class="p">)</span>
+        <span class="n">images</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">drawing</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;.//w:drawing&quot;</span><span class="p">,</span> <span class="n">namespaces</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nsmap</span><span class="p">):</span>
+            <span class="n">blip</span> <span class="o">=</span> <span class="n">drawing</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;.//a:blip&quot;</span><span class="p">,</span> <span class="n">namespaces</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="s2">&quot;http://schemas.openxmlformats.org/drawingml/2006/main&quot;</span><span class="p">})</span>
+            <span class="k">if</span> <span class="n">blip</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">r_id</span> <span class="o">=</span> <span class="n">blip</span><span class="o">.</span><span class="n">attrib</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                <span class="n">images</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;rId&quot;</span><span class="p">:</span> <span class="n">r_id</span><span class="p">,</span> <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="n">rels_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">r_id</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)})</span>
+        <span class="k">return</span> <span class="n">images</span></div>
+
+
+<div class="viewcode-block" id="TemplifySchemaBuilder.extract_bookmarks">
+<a class="viewcode-back" href="../../../../templify.html#templify.TemplifySchemaBuilder.extract_bookmarks">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">extract_bookmarks</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="n">bookmarks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">bm</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;.//w:bookmarkStart&quot;</span><span class="p">,</span> <span class="n">namespaces</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nsmap</span><span class="p">):</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">bm</span><span class="o">.</span><span class="n">attrib</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;{http://schemas.openxmlformats.org/wordprocessingml/2006/main}name&quot;</span><span class="p">)</span>
+            <span class="n">bookmarks</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">})</span>
+        <span class="k">return</span> <span class="n">bookmarks</span></div>
+
+
+<div class="viewcode-block" id="TemplifySchemaBuilder.extract_inline_formatting">
+<a class="viewcode-back" href="../../../../templify.html#templify.TemplifySchemaBuilder.extract_inline_formatting">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">extract_inline_formatting</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="n">flags</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;.//w:p&quot;</span><span class="p">,</span> <span class="n">namespaces</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nsmap</span><span class="p">):</span>
+            <span class="n">formats</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;bold&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;italic&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;underline&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+            <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;.//w:r&quot;</span><span class="p">,</span> <span class="n">namespaces</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nsmap</span><span class="p">):</span>
+                <span class="n">rPr</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;w:rPr&quot;</span><span class="p">,</span> <span class="n">namespaces</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nsmap</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">rPr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">rPr</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;w:b&quot;</span><span class="p">,</span> <span class="n">namespaces</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nsmap</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">formats</span><span class="p">[</span><span class="s2">&quot;bold&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">if</span> <span class="n">rPr</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;w:i&quot;</span><span class="p">,</span> <span class="n">namespaces</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nsmap</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">formats</span><span class="p">[</span><span class="s2">&quot;italic&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">if</span> <span class="n">rPr</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;w:u&quot;</span><span class="p">,</span> <span class="n">namespaces</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nsmap</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">formats</span><span class="p">[</span><span class="s2">&quot;underline&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">flags</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">formats</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">flags</span></div>
+
+
+<div class="viewcode-block" id="TemplifySchemaBuilder.extract_metadata">
+<a class="viewcode-back" href="../../../../templify.html#templify.TemplifySchemaBuilder.extract_metadata">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">extract_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">docx_extract_dir</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">{}</span>
         <span class="n">core_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">docx_extract_dir</span><span class="p">,</span> <span class="s2">&quot;docProps&quot;</span><span class="p">,</span> <span class="s2">&quot;core.xml&quot;</span><span class="p">)</span>
@@ -204,10 +332,34 @@
         <span class="n">pattern_descriptors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_pattern_descriptors</span><span class="p">()</span>
         <span class="n">global_defaults</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_global_defaults</span><span class="p">()</span>
 
+        <span class="n">styles</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_styles</span><span class="p">()</span>
+        <span class="n">sections</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_sections</span><span class="p">()</span>
+        <span class="n">tables</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_tables</span><span class="p">()</span>
+        <span class="n">numbering</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_numbering</span><span class="p">()</span>
+        <span class="n">headers</span><span class="p">,</span> <span class="n">footers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_headers_footers</span><span class="p">()</span>
+        <span class="n">theme</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_theme</span><span class="p">()</span>
+
+        <span class="n">hyperlinks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_hyperlinks</span><span class="p">()</span>
+        <span class="n">images</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_images</span><span class="p">()</span>
+        <span class="n">bookmarks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_bookmarks</span><span class="p">()</span>
+        <span class="n">inline_formatting</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_inline_formatting</span><span class="p">()</span>
+        <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_metadata</span><span class="p">()</span>
+
         <span class="n">generator</span> <span class="o">=</span> <span class="n">SchemaGenerator</span><span class="p">(</span>
             <span class="n">sections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sections</span><span class="p">,</span>
             <span class="n">layout_groups</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">layout_groups</span><span class="p">,</span>
             <span class="n">global_defaults</span><span class="o">=</span><span class="n">global_defaults</span><span class="p">,</span>
+            <span class="c1"># styles=styles,</span>
+            <span class="c1"># tables=tables,</span>
+            <span class="c1"># numbering=numbering,</span>
+            <span class="c1"># headers=headers,</span>
+            <span class="c1"># footers=footers,</span>
+            <span class="c1"># theme=theme,</span>
+            <span class="c1"># hyperlinks=hyperlinks,</span>
+            <span class="c1"># images=images,</span>
+            <span class="c1"># bookmarks=bookmarks,</span>
+            <span class="c1"># inline_formatting=inline_formatting,</span>
+            <span class="c1"># metadata=metadata,</span>
             <span class="n">pattern_descriptors</span><span class="o">=</span><span class="n">pattern_descriptors</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">generator</span><span class="o">.</span><span class="n">generate</span><span class="p">()</span></div>
