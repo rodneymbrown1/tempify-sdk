@@ -87,9 +87,8 @@ class TemplifySchemaBuilder:
         # save descriptors into builder
         self.pattern_descriptors = [d.to_dict() for d in descriptors]
 
-        # 🔹 still build section tree from heading-like descriptors
-        detections = detect_headings(lines)
-        self.sections = build_sections_from_headings(detections, descriptors)
+        # detections = detect_headings(lines)
+        # self.sections = build_sections_from_headings(detections, descriptors)
 
         return self.pattern_descriptors
     
@@ -235,7 +234,7 @@ class TemplifySchemaBuilder:
         metadata = self.extract_metadata()
 
         generator = SchemaGenerator(
-            sections=self.sections,
+            # sections=self.sections,
             layout_groups=self.layout_groups,
             global_defaults=global_defaults,
             # styles=styles,
