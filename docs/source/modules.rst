@@ -1,7 +1,11 @@
-templify
-========
+core
+====
 
 .. toctree::
    :maxdepth: 4
 
-   templify
+   analysis
+   schema
+   schema_runner
+   utils
+   workspace
