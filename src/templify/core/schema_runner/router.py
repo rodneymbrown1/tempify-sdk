@@ -10,10 +10,7 @@ class SchemaRouter:
             "H": ParagraphWriter(document),
             "L": ListWriter(document),
             "T": TableWriter(document),
-            "HEADER": HeaderFooterWriter(document),
-            "FOOTER": HeaderFooterWriter(document),
             "IMG": ImageWriter(document),
-            "THEME": ThemeWriter(document),
         }
 
     def dispatch(self, descriptor, style):
@@ -26,11 +23,5 @@ class SchemaRouter:
             return self.writers["L"].write(descriptor, style)
         if t.startswith("T"):
             return self.writers["T"].write(descriptor, style)
-        if t == "HEADER":
-            return self.writers["HEADER"].write(descriptor, style)
-        if t == "FOOTER":
-            return self.writers["FOOTER"].write(descriptor, style)
         if t.startswith("IMG"):
             return self.writers["IMG"].write(descriptor, style)
-        if t.startswith("THEME"):
-            return self.writers["THEME"].write(descriptor, style)
