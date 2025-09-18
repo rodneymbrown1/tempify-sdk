@@ -9,7 +9,7 @@ from templify.core.analysis.forms.paragraphs import ParagraphForm
 from templify.core.analysis.detectors.heuristics.paragraph_detector import ParagraphDetection
 from templify.core.analysis.detectors.heuristics.heading_detector import HeadingDetection
 from templify.core.analysis.detectors.heuristics.list_detector import ListDetection
-from templify.core.analysis.detectors.heuristics.tabular_detector import TabularDetection
+from templify.core.analysis.detectors.heuristics.tabular_detector import TableDetection
 from templify.core.analysis.detectors.heuristics.callouts import CalloutDetection
 from templify.core.analysis.detectors.semantic_classifier import SemanticPrediction
 from templify.core.analysis.detectors.regex_maker import RegexDetection
@@ -126,7 +126,7 @@ def coerce_to_descriptor(
             features={"text": text or "", "line_idx": raw.line_idx},
             domain_hint=domain or "GENERIC",
         )
-    if isinstance(raw, TabularDetection):
+    if isinstance(raw, TableDetection):
         return PatternDescriptor(
             type=raw.label,
             signals=[signal],
@@ -159,7 +159,7 @@ def coerce_to_descriptor(
         if all(isinstance(p, SemanticPrediction) for p in raw):
             best = max(raw, key=lambda p: p.score)
             return coerce_to_descriptor(best, signal="SEMANTIC", text=text, features=features, domain=domain)
-        if all(isinstance(p, (ParagraphDetection, HeadingDetection, ListDetection, TabularDetection, CalloutDetection)) for p in raw):
+        if all(isinstance(p, (ParagraphDetection, HeadingDetection, ListDetection, TableDetection, CalloutDetection)) for p in raw):
             best = max(raw, key=lambda p: getattr(p, "score", 0.0))
             return coerce_to_descriptor(best, signal=signal, text=text, features=features, domain=domain)
 

@@ -5,14 +5,17 @@ from typing import List, Sequence, Union, Dict, Any
 
 from templify.core.analysis.utils.plaintext_context import PlaintextContext
 from templify.core.analysis.detectors.utils import coerce_to_lines, normalize_line
+from templify.core.analysis.forms.tables import TableForm, guess_table_form
 
 
 @dataclass(frozen=True)
-class TabularDetection:
+class TableDetection:
     line_idx: int
-    label: str = "tabular"
-    score: float = 0.0
+    label: str
+    score: float
     method: str = "heuristic"
+    form: TableForm | None = None
+    clean_text: str | None = None
 
 
 # ---------- Regex helpers ----------
@@ -21,9 +24,9 @@ DELIM_RE = re.compile(r"[;,\t]")
 GRID_BORDER_RE = re.compile(r"^[\+\-\|\=]+$")  # ASCII table lines
 
 
-def score_tabular_line(text: str, *, debug: bool = False) -> float:
+def score_table_line(text: str, *, debug: bool = False) -> float:
     """
-    Score how tabular/grid-like a line is. Returns 0..1.
+    Score how table/grid-like a line is. Returns 0..1.
     """
     s = normalize_line(text or "")
     if not s:
@@ -49,7 +52,6 @@ def score_tabular_line(text: str, *, debug: bool = False) -> float:
         score += 0.3; logs.append(("digit_ratio", +0.3))
 
     # Positive: ASCII borders
-    # In score_tabular_line
     if GRID_BORDER_RE.match(s):
         score += 0.9; logs.append(("grid_border", +0.9))
 
@@ -60,31 +62,44 @@ def score_tabular_line(text: str, *, debug: bool = False) -> float:
     final = max(0.0, min(1.0, score))
 
     if debug:
-        print(f"[Tabular scoring] {text!r} → {final:.3f}")
+        print(f"[Table scoring] {text!r} → {final:.3f}")
         for name, delta in logs:
             print(f"  - {name}: {delta:+.2f}")
 
     return final
 
 
-def detect_tabular(
+def detect_tables(
     source: Union[Sequence[str], PlaintextContext],
     threshold: float = 0.55,
-    label: str = "tabular",
-) -> List[TabularDetection]:
+) -> List[TableDetection]:
+    """
+    Run heuristics to detect table-like lines and classify their form.
+    """
     lines = coerce_to_lines(source)
-    preds: List[TabularDetection] = []
+    preds: List[TableDetection] = []
 
     for i, s in enumerate(lines):
-        sc = score_tabular_line(s)
+        sc = score_table_line(s)
         if sc >= threshold:
-            preds.append(TabularDetection(i, label, sc))
+            form = guess_table_form(s)
+            label = form.value if form else TableForm.T_ROW.value
+            preds.append(
+                TableDetection(
+                    line_idx=i,
+                    label=label,
+                    score=sc,
+                    form=form,
+                    clean_text=s.strip(),
+                )
+            )
 
     return preds
+
 
 def match(lines, features=None, domain=None, threshold: float = 0.55, **kwargs):
     """
     Standardized entrypoint for the router.
-    Delegates to the heuristic tabular detector.
+    Delegates to the heuristic table detector.
     """
-    return detect_tabular(lines, threshold=threshold)
+    return detect_tables(lines, threshold=threshold)
