@@ -9,7 +9,7 @@ from templify.core.analysis.forms.paragraphs import ParagraphForm
 from templify.core.analysis.detectors.heuristics.paragraph_detector import ParagraphDetection
 from templify.core.analysis.detectors.heuristics.heading_detector import HeadingDetection
 from templify.core.analysis.detectors.heuristics.list_detector import ListDetection
-from templify.core.analysis.detectors.heuristics.tabular_detector import TableDetection
+from templify.core.analysis.detectors.heuristics.table_detector import TableDetection
 from templify.core.analysis.detectors.heuristics.callouts import CalloutDetection
 from templify.core.analysis.detectors.semantic_classifier import SemanticPrediction
 from templify.core.analysis.detectors.regex_maker import RegexDetection

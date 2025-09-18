@@ -1,6 +1,6 @@
 from .detectors import exact_matcher, regex_maker, semantic_classifier
 from .detectors.heuristics import (
-    heading_detector, list_detector, paragraph_detector, tabular_detector, callouts,
+    heading_detector, list_detector, paragraph_detector, table_detector, callouts,
 )
 from .utils.pattern_descriptor import coerce_to_descriptor, PatternDescriptor
 
@@ -11,7 +11,7 @@ MATCHERS = {
         "heading": heading_detector.match,      # should return H-SHORT, H-LONG, etc.
         "list": list_detector.match,            # should return L-BULLET, L-ORDERED, etc.
         "paragraph": paragraph_detector.match,  # should return P-BODY, P-LEAD, etc.
-        "table": tabular_detector.match,        # should return T-ROW, T-CAPTION, etc.
+        "table": table_detector.match,        # should return T-ROW, T-CAPTION, etc.
         "callout": callouts.match,              # should return C-WARNING, C-QUOTE, etc.
     },
     "semantic": semantic_classifier.match,

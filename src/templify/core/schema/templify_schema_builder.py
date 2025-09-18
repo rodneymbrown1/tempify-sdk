@@ -102,6 +102,101 @@ class TemplifySchemaBuilder:
         }
         return self.global_defaults
 
+    def extract_styles(self) -> Dict[str, Any]:
+        mapper = DocxStylesMapper(self.document_xml_path, self.docx_extract_dir)
+        return mapper.collect_styles()
+
+    def extract_sections(self) -> List[Dict[str, Any]]:
+        mapper = DocxSectionsMapper(self.document_xml_path)
+        return mapper.collect_sections()
+
+    def extract_tables(self) -> List[Dict[str, Any]]:
+        mapper = DocxTablesMapper(self.document_xml_path)
+        return mapper.collect_tables()
+
+    def extract_numbering(self) -> Dict[str, Any]:
+        if not self.docx_extract_dir:
+            return {}
+        numbering_path = os.path.join(self.docx_extract_dir, "word", "numbering.xml")
+        if os.path.exists(numbering_path):
+            return DocxNumberingMapper(numbering_path).collect_numbering()
+        return {}
+
+    def extract_headers_footers(self) -> tuple[list[Dict[str, Any]], list[Dict[str, Any]]]:
+        if not self.docx_extract_dir:
+            return [], []
+        mapper = DocxHeadersFootersMapper(self.docx_extract_dir)
+        hf = mapper.collect_headers_footers()
+        return hf["headers"], hf["footers"]
+
+    def extract_theme(self) -> Dict[str, Any]:
+        if not self.docx_extract_dir:
+            return {}
+        theme_path = os.path.join(self.docx_extract_dir, "word", "theme", "theme1.xml")
+        if os.path.exists(theme_path):
+            return DocxThemesMapper(theme_path).collect_theme()
+        return {}
+
+    def extract_hyperlinks(self) -> List[Dict[str, Any]]:
+        if not self.docx_extract_dir:
+            return []
+        rels_path = os.path.join(self.docx_extract_dir, "word", "_rels", "document.xml.rels")
+        rels_map = {}
+        if os.path.exists(rels_path):
+            rels_tree = ET.parse(rels_path).getroot()
+            for rel in rels_tree.findall(".//{http://schemas.openxmlformats.org/package/2006/relationships}Relationship"):
+                r_id = rel.attrib.get("Id")
+                target = rel.attrib.get("Target")
+                rels_map[r_id] = target
+        links = []
+        for link in self.body.findall(".//w:hyperlink", namespaces=self.nsmap):
+            r_id = link.attrib.get("{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id")
+            text = "".join(t.text for t in link.findall(".//w:t", namespaces=self.nsmap) if t.text)
+            links.append({"text": text, "target": rels_map.get(r_id, "")})
+        return links
+
+    def extract_images(self) -> List[Dict[str, Any]]:
+        if not self.docx_extract_dir:
+            return []
+        rels_path = os.path.join(self.docx_extract_dir, "word", "_rels", "document.xml.rels")
+        rels_map = {}
+        if os.path.exists(rels_path):
+            rels_tree = ET.parse(rels_path).getroot()
+            for rel in rels_tree.findall(".//{http://schemas.openxmlformats.org/package/2006/relationships}Relationship"):
+                if "image" in rel.attrib.get("Target", ""):
+                    rels_map[rel.attrib.get("Id")] = rel.attrib.get("Target")
+        images = []
+        for drawing in self.body.findall(".//w:drawing", namespaces=self.nsmap):
+            blip = drawing.find(".//a:blip", namespaces={"a": "http://schemas.openxmlformats.org/drawingml/2006/main"})
+            if blip is not None:
+                r_id = blip.attrib.get("{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed", "")
+                images.append({"rId": r_id, "path": rels_map.get(r_id, "")})
+        return images
+
+    def extract_bookmarks(self) -> List[Dict[str, Any]]:
+        bookmarks = []
+        for bm in self.body.findall(".//w:bookmarkStart", namespaces=self.nsmap):
+            name = bm.attrib.get("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}name")
+            bookmarks.append({"name": name})
+        return bookmarks
+
+    def extract_inline_formatting(self) -> List[Dict[str, Any]]:
+        flags = []
+        for p in self.body.findall(".//w:p", namespaces=self.nsmap):
+            formats = {"bold": False, "italic": False, "underline": False}
+            for r in p.findall(".//w:r", namespaces=self.nsmap):
+                rPr = r.find("w:rPr", namespaces=self.nsmap)
+                if rPr is not None:
+                    if rPr.find("w:b", namespaces=self.nsmap) is not None:
+                        formats["bold"] = True
+                    if rPr.find("w:i", namespaces=self.nsmap) is not None:
+                        formats["italic"] = True
+                    if rPr.find("w:u", namespaces=self.nsmap) is not None:
+                        formats["underline"] = True
+            flags.append(formats)
+        return flags
+
+    def extract_metadata(self) -> Dict[str, Any]:
         if not self.docx_extract_dir:
             return {}
         core_path = os.path.join(self.docx_extract_dir, "docProps", "core.xml")
@@ -126,10 +221,34 @@ class TemplifySchemaBuilder:
         pattern_descriptors = self.generate_pattern_descriptors()
         global_defaults = self.extract_global_defaults()
 
+        styles = self.extract_styles()
+        sections = self.extract_sections()
+        tables = self.extract_tables()
+        numbering = self.extract_numbering()
+        headers, footers = self.extract_headers_footers()
+        theme = self.extract_theme()
+
+        hyperlinks = self.extract_hyperlinks()
+        images = self.extract_images()
+        bookmarks = self.extract_bookmarks()
+        inline_formatting = self.extract_inline_formatting()
+        metadata = self.extract_metadata()
+
         generator = SchemaGenerator(
             sections=self.sections,
             layout_groups=self.layout_groups,
             global_defaults=global_defaults,
+            # styles=styles,
+            # tables=tables,
+            # numbering=numbering,
+            # headers=headers,
+            # footers=footers,
+            # theme=theme,
+            # hyperlinks=hyperlinks,
+            # images=images,
+            # bookmarks=bookmarks,
+            # inline_formatting=inline_formatting,
+            # metadata=metadata,
             pattern_descriptors=pattern_descriptors,
         )
         return generator.generate()

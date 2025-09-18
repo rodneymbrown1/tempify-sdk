@@ -13,7 +13,7 @@ from templify.core.analysis.detectors.heuristics.heading_detector import detect_
 from templify.core.analysis.detectors.heuristics.list_detector import detect_lists
 from templify.core.analysis.detectors.heuristics.paragraph_detector import detect_paragraphs
 from templify.core.analysis.detectors.heuristics.callouts import CalloutHeuristicDetector
-from templify.core.analysis.detectors.heuristics.tabular_detector import detect_tables
+from templify.core.analysis.detectors.heuristics.table_detector import detect_tables
 
 
 def classify_lines(
