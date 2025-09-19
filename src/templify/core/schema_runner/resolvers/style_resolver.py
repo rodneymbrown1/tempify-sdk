@@ -17,37 +17,47 @@ def deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]
             merged[k] = v
     return merged
 
-
 def resolve_style(
-    descriptor_type: str,
+    descriptor: Dict[str, Any],
     schema: Dict[str, Any],
     global_defaults: Dict[str, Any],
-    docx_styles,
+    docx_styles: dict | None,
 ) -> Dict[str, Any]:
-    """
-    Resolve style precedence:
-    1. style_id from schema/descriptor (if present)
-    2. schema/descriptor properties (font, paragraph, etc.)
-    3. global defaults (fallbacks for missing keys)
-    """
-    schema_style = {}
-    for pat in schema.get("pattern_descriptors", []):
-        if pat.get("type") == descriptor_type:
-            schema_style = pat.get("style", {})
-            break
-
+    schema_style = descriptor.get("style", {}) or {}
     merged: Dict[str, Any] = {}
 
-    # --- Step 1: style_id (if present)
+    # --- Step 1: style_id
     if "style_id" in schema_style:
-        merged["style_id"] = schema_style["style_id"]
+        style_id = schema_style["style_id"]
+        merged["style_id"] = style_id
+        print(f"[StyleResolver] Found style_id '{style_id}' in descriptor {descriptor.get('id')}")
 
-    # --- Step 2: merge schema style with defaults (per-key deep merge)
-    merged["font"] = deep_merge(global_defaults.get("font", {}), schema_style.get("font", {}))
-    merged["paragraph"] = deep_merge(global_defaults.get("paragraph", {}), schema_style.get("paragraph", {}))
+        if docx_styles and style_id in docx_styles:
+            word_style = docx_styles[style_id]
+            merged["font"] = {}
+            merged["font"]["name"] = getattr(word_style.font, "name", None)
+            if getattr(word_style.font, "size", None):
+                merged["font"]["size"] = word_style.font.size.pt
 
+    # --- Step 2: fonts always merge schema + global
+    merged["font"] = deep_merge(
+        deep_merge(global_defaults.get("font", {}), merged.get("font", {})),
+        schema_style.get("font", {}),
+    )
+
+    # --- Step 3: paragraph merging
+    if "style_id" in schema_style:
+        # If a style_id exists, only apply schema overrides, skip global defaults
+        merged["paragraph"] = schema_style.get("paragraph", {})
+    else:
+        # Otherwise, merge global defaults + schema
+        merged["paragraph"] = deep_merge(
+            global_defaults.get("paragraph", {}),
+            schema_style.get("paragraph", {}),
+        )
+
+    print(f"[StyleResolver] Resolved style for descriptor {descriptor.get('id')}: {merged}")
     return merged
-
 
 def apply_style_to_paragraph(paragraph, style: Dict[str, Any]):
     """

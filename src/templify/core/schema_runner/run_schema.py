@@ -35,25 +35,23 @@ class TemplifySchemaRunner:
         self.document: Document = strip_body_content(docx_path)
         self.router = SchemaRouter(self.document)
 
-
     def run(self) -> List[Tuple[str, Dict[str, Any], Dict[str, Any]]]:
-        results: List[Tuple[str, Dict[str, Any], Dict[str, Any]]] = []
+        results = []
+
+        # collect style definitions once
+        docx_styles = {s.name: s for s in self.document.styles}
 
         for desc in self.pattern_descriptors:
             line_text = desc.get("features", {}).get("clean_text", "")
 
-            # --- Resolve style precedence ---
             style_obj = resolve_style(
-                descriptor_type=desc.get("type", "UNKNOWN"),
+                descriptor=desc,
                 schema=self.schema,
                 global_defaults=self.global_defaults,
-                docx_styles=None,   # placeholder, resolver doesn’t use this yet
+                docx_styles=docx_styles,  
             )
 
-            # --- Dispatch to correct writer ---
             self.router.dispatch(desc, style_obj)
-
-            # --- Collect trace tuple for debugging/testing ---
             results.append((line_text, desc, style_obj))
 
         return results

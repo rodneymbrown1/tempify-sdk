@@ -102,7 +102,7 @@ templify build-schema .templify/input/docx/resume.docx \
 Now we can take plain text (from an LLM or elsewhere) and run it through the schema runner to produce a styled DOCX.
 
 ```bash
-from templify.core.schema_runner.runner import run_schema
+from templify.core.schema_runner.run_schema import run_schema
 from templify.utils.plaintext_intake import intake_plaintext
 ```
 

@@ -1,7 +1,7 @@
 # src/templify/core/schema_runner/writers/paragraph_writer.py
 
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Pt
+from docx.shared import Pt, RGBColor
 
 
 class ParagraphWriter:
@@ -46,7 +46,13 @@ class ParagraphWriter:
             if "underline" in font:
                 run.font.underline = font["underline"]
             if "color" in font and font["color"]:
-                run.font.color.rgb = font["color"]
+                color_val = font["color"]
+                if isinstance(color_val, str):
+                    # accept "FF0000" or "#FF0000"
+                    hex_str = color_val.lstrip("#")
+                    run.font.color.rgb = RGBColor.from_string(hex_str)
+                elif isinstance(color_val, RGBColor):
+                    run.font.color.rgb = color_val
 
         # Paragraph properties
         if "paragraph" in style:
